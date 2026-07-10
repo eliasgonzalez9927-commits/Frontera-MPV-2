@@ -2,32 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { TriageCase, CaseStatus } from "@/lib/triageCases";
+import {
+  formatCaseDate,
+  statusLabels,
+  type CaseStatus,
+  type TriageCase,
+} from "@/lib/triageCases";
 
 type PageProps = {
   params: Promise<{ caseCode: string }>;
 };
-
-function formatStatus(status: string) {
-  const labels: Record<string, string> = {
-    waiting: "En espera",
-    in_review: "En revisión",
-    attended: "Atendido",
-  };
-
-  return labels[status] ?? status;
-}
-
-function formatCaseDate(value: string) {
-  const date = new Date(value);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${day}/${month}/${year} · ${hours}:${minutes} hs`;
-}
 
 export default function ClinicCaseDetailPage({ params }: PageProps) {
   const [caseCode, setCaseCode] = useState("");
@@ -40,6 +24,7 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
   const [caseData, setCaseData] = useState<TriageCase | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -82,7 +67,11 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
         }
 
         if (!response.ok) {
-          setMessage(payload.error ?? "No se pudo cargar el caso.");
+          setMessage(
+            response.status === 401
+              ? "Token clínico inválido o ausente."
+              : payload.error ?? "No se pudo cargar el caso."
+          );
           return;
         }
 
@@ -113,6 +102,7 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
 
   async function updateStatus(status: CaseStatus) {
     setMessage("");
+    setIsUpdating(true);
 
     try {
       const response = await fetch(`/api/clinic/cases/${caseCode}`, {
@@ -126,13 +116,19 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        setMessage(payload.error ?? "No se pudo actualizar el estado.");
+        setMessage(
+          response.status === 401
+            ? "Token clínico inválido o ausente."
+            : payload.error ?? "No se pudo actualizar el estado."
+        );
         return;
       }
 
       setCaseData(payload.case);
     } catch {
       setMessage("No se pudo actualizar el estado.");
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -172,7 +168,10 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
 
         {message && (
           <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
-            {message}
+            {message}{" "}
+            <Link href="/clinica/dashboard" className="font-bold underline">
+              Volver al dashboard
+            </Link>
           </div>
         )}
 
@@ -188,20 +187,33 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => updateStatus("in_review")}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
-                >
-                  Marcar en revisión
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateStatus("attended")}
-                  className="rounded-2xl bg-[#52d6c4] px-4 py-2 text-sm font-bold text-[#071923]"
-                >
-                  Marcar atendido
-                </button>
+                {caseData.status === "waiting" && (
+                  <button
+                    type="button"
+                    disabled={isUpdating}
+                    onClick={() => updateStatus("in_review")}
+                    className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Marcar en revisión
+                  </button>
+                )}
+
+                {caseData.status === "in_review" && (
+                  <button
+                    type="button"
+                    disabled={isUpdating}
+                    onClick={() => updateStatus("attended")}
+                    className="rounded-2xl bg-[#52d6c4] px-4 py-2 text-sm font-bold text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Marcar atendido
+                  </button>
+                )}
+
+                {caseData.status === "attended" && (
+                  <div className="rounded-2xl border border-green-300/30 bg-green-500/10 px-4 py-2 text-sm font-bold text-green-100">
+                    Caso cerrado / Atendido
+                  </div>
+                )}
               </div>
             </div>
 
@@ -215,7 +227,7 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
               <div className="rounded-2xl bg-[#0d2530] p-4">
                 <p className="text-sm text-slate-400">Estado</p>
                 <p className="mt-1 font-semibold">
-                  {formatStatus(caseData.status)}
+                  {statusLabels[caseData.status]}
                 </p>
               </div>
               <div className="rounded-2xl bg-[#0d2530] p-4">

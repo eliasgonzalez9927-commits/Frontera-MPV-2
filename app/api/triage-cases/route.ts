@@ -58,6 +58,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (motivo.length < 10) {
+    return NextResponse.json(
+      { error: "El motivo de consulta debe tener al menos 10 caracteres." },
+      { status: 400 }
+    );
+  }
+
   if (
     intensidad !== undefined &&
     (!Number.isInteger(intensidad) || intensidad < 1 || intensidad > 10)
@@ -76,45 +83,53 @@ export async function POST(request: Request) {
     source,
   });
   const caseCode = createCaseCode();
-  const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("triage_cases")
-    .insert({
-      case_code: caseCode,
-      source,
-      source_label: getSourceLabel(source),
-      patient_label: result.patientLabel,
-      chief_complaint: motivo,
-      evolution: evolucion || null,
-      intensity: intensidad ?? null,
-      symptoms: sintomas,
-      red_signals: result.redSignals,
-      priority: result.priority,
-      priority_label: getPriorityLabel(result.priority),
-      recommendation: result.recommendation,
-      handover: {
-        ...result.handover,
-        motivo,
-        evolucion,
-      },
-      status: "waiting",
-    })
-    .select()
-    .single<TriageCaseRow>();
+  try {
+    const supabase = getSupabaseServerClient();
 
-  if (error) {
+    const { data, error } = await supabase
+      .from("triage_cases")
+      .insert({
+        case_code: caseCode,
+        source,
+        source_label: getSourceLabel(source),
+        patient_label: result.patientLabel,
+        chief_complaint: motivo,
+        evolution: evolucion || null,
+        intensity: intensidad ?? null,
+        symptoms: sintomas,
+        red_signals: result.redSignals,
+        priority: result.priority,
+        priority_label: getPriorityLabel(result.priority),
+        recommendation: result.recommendation,
+        handover: {
+          ...result.handover,
+          motivo,
+          evolucion: evolucion || undefined,
+        },
+        status: "waiting",
+      })
+      .select()
+      .single<TriageCaseRow>();
+
+    if (error) {
+      return NextResponse.json(
+        { error: "No se pudo crear el caso de pre-triaje." },
+        { status: 500 }
+      );
+    }
+
+    const savedCase = mapRowToTriageCase(data);
+
+    return NextResponse.json({
+      caseCode: savedCase.caseCode,
+      status: savedCase.status,
+      case: savedCase,
+    });
+  } catch {
     return NextResponse.json(
       { error: "No se pudo crear el caso de pre-triaje." },
       { status: 500 }
     );
   }
-
-  const savedCase = mapRowToTriageCase(data);
-
-  return NextResponse.json({
-    caseCode: savedCase.caseCode,
-    status: savedCase.status,
-    case: savedCase,
-  });
 }

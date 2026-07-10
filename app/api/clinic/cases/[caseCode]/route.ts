@@ -38,13 +38,28 @@ export async function GET(
   }
 
   const { caseCode } = await context.params;
-  const { data, error } = await getCase(caseCode);
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
+  if (!caseCode) {
+    return NextResponse.json(
+      { error: "El codigo de caso es obligatorio." },
+      { status: 400 }
+    );
   }
 
-  return NextResponse.json({ case: mapRowToTriageCase(data) });
+  try {
+    const { data, error } = await getCase(caseCode);
+
+    if (error || !data) {
+      return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
+    }
+
+    return NextResponse.json({ case: mapRowToTriageCase(data) });
+  } catch {
+    return NextResponse.json(
+      { error: "No se pudo cargar el caso." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PATCH(
@@ -82,20 +97,35 @@ export async function PATCH(
   }
 
   const { caseCode } = await context.params;
-  const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("triage_cases")
-    .update({ status })
-    .eq("case_code", caseCode)
-    .select()
-    .single<TriageCaseRow>();
 
-  if (error || !data) {
+  if (!caseCode) {
+    return NextResponse.json(
+      { error: "El codigo de caso es obligatorio." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("triage_cases")
+      .update({ status })
+      .eq("case_code", caseCode)
+      .select()
+      .single<TriageCaseRow>();
+
+    if (error || !data) {
+      return NextResponse.json(
+        { error: "No se pudo actualizar el caso." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ case: mapRowToTriageCase(data) });
+  } catch {
     return NextResponse.json(
       { error: "No se pudo actualizar el caso." },
       { status: 500 }
     );
   }
-
-  return NextResponse.json({ case: mapRowToTriageCase(data) });
 }

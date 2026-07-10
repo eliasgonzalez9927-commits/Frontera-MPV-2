@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { analyzeTriage, getSourceLabel, normalizeSource } from "@/lib/triage";
+import { getSourceLabel, normalizeSource } from "@/lib/triage";
 
 const symptomOptions = [
   "fiebre",
@@ -37,6 +37,28 @@ function PreTriageForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
+    const trimmedMotivo = motivo.trim();
+
+    if (!trimmedMotivo) {
+      setError("El motivo de consulta es obligatorio.");
+      return;
+    }
+
+    if (trimmedMotivo.length < 10) {
+      setError("Contanos el motivo con al menos 10 caracteres.");
+      return;
+    }
+
+    if (intensidad < 1 || intensidad > 10) {
+      setError("La intensidad debe estar entre 1 y 10.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -47,8 +69,8 @@ function PreTriageForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          motivo,
-          evolucion,
+          motivo: trimmedMotivo,
+          evolucion: evolucion.trim(),
           intensidad,
           sintomas,
           source,
@@ -62,23 +84,8 @@ function PreTriageForm() {
       }
 
       throw new Error(payload.error ?? "No se pudo crear el caso.");
-    } catch (submitError) {
-      const fallbackMessage =
-        submitError instanceof Error
-          ? `${submitError.message} Mostramos un resultado local de desarrollo.`
-          : "No se pudo crear el caso. Mostramos un resultado local de desarrollo.";
-      const result = analyzeTriage({
-        motivo,
-        evolucion,
-        intensidad,
-        sintomas,
-        source,
-      });
-
-      sessionStorage.setItem("frontera-last-case", JSON.stringify(result));
-      sessionStorage.setItem("frontera-last-error", fallbackMessage);
-      setError(fallbackMessage);
-      router.push("/pretriaje/resultado");
+    } catch {
+      setError("No pudimos crear el caso. Revisá la conexión e intentá de nuevo.");
     } finally {
       setIsSubmitting(false);
     }
@@ -117,6 +124,7 @@ function PreTriageForm() {
               </label>
               <textarea
                 required
+                minLength={10}
                 value={motivo}
                 onChange={(event) => setMotivo(event.target.value)}
                 placeholder="Ej: Me duele mucho la panza desde hace 4 horas..."
@@ -192,7 +200,7 @@ function PreTriageForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-2xl bg-[#52d6c4] px-6 py-4 font-black text-[#071923] transition hover:scale-[1.01]"
+              className="w-full rounded-2xl bg-[#52d6c4] px-6 py-4 font-black text-[#071923] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? "Creando caso..." : "Evaluar urgencia"}
             </button>

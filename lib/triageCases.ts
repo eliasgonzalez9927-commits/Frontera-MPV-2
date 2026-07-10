@@ -31,6 +31,12 @@ export type TriageCaseRow = {
 
 export const allowedStatuses: CaseStatus[] = ["waiting", "in_review", "attended"];
 
+export const statusLabels: Record<CaseStatus, string> = {
+  waiting: "En espera",
+  in_review: "En revisión",
+  attended: "Atendido",
+};
+
 export function mapRowToTriageCase(row: TriageCaseRow): TriageCase {
   return {
     id: row.case_code,
@@ -62,4 +68,49 @@ export function prioritySortValue(priority: Priority) {
   };
 
   return rank[priority];
+}
+
+export function statusSortValue(status: CaseStatus) {
+  const rank: Record<CaseStatus, number> = {
+    waiting: 1,
+    in_review: 2,
+    attended: 3,
+  };
+
+  return rank[status];
+}
+
+export function sortTriageCases(cases: TriageCase[]) {
+  return [...cases].sort((a, b) => {
+    const byStatus = statusSortValue(a.status) - statusSortValue(b.status);
+    if (byStatus !== 0) {
+      return byStatus;
+    }
+
+    const byPriority = prioritySortValue(a.priority) - prioritySortValue(b.priority);
+    if (byPriority !== 0) {
+      return byPriority;
+    }
+
+    return Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  });
+}
+
+export function formatCaseDate(value: string) {
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} · ${hours}:${minutes} hs`;
+}
+
+export function formatCaseTime(value: string) {
+  const date = new Date(value);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes} hs`;
 }

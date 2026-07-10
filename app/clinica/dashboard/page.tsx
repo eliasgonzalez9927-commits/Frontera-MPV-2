@@ -1,21 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { Priority } from "@/lib/triage";
-import { priorityRank } from "@/lib/triage";
-import type { TriageCase } from "@/lib/triageCases";
+import {
+  formatCaseTime,
+  sortTriageCases,
+  statusLabels,
+  type CaseStatus,
+  type TriageCase,
+} from "@/lib/triageCases";
 
-const demoCases = [
+type CaseFilter = "all" | CaseStatus;
+
+const demoCases: TriageCase[] = [
   {
+    id: "FR-DEMO-ROJO",
     caseCode: "FR-DEMO-ROJO",
     patientLabel: "Paciente sin identificar",
     chiefComplaint: "Dolor de pecho y falta de aire",
     priority: "ROJO" as Priority,
+    title: "Emergencia",
+    source: "qr",
     sourceLabel: "Entrada QR de guardia",
-    status: "waiting",
+    status: "waiting" as CaseStatus,
     createdAt: new Date().toISOString(),
     recommendation: "Requiere intervención inmediata.",
+    redSignals: ["dolor de pecho", "me cuesta respirar"],
+    symptoms: ["dolor de pecho", "me cuesta respirar"],
     handover: {
       motivo: "Dolor de pecho y falta de aire",
       prioridad: "ROJO" as Priority,
@@ -24,14 +36,19 @@ const demoCases = [
     },
   },
   {
+    id: "FR-DEMO-AMARILLO",
     caseCode: "FR-DEMO-AMARILLO",
     patientLabel: "Paciente web",
     chiefComplaint: "Fiebre y vómitos desde anoche",
     priority: "AMARILLO" as Priority,
+    title: "Urgente",
+    source: "web",
     sourceLabel: "Entrada web",
-    status: "waiting",
+    status: "waiting" as CaseStatus,
     createdAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
     recommendation: "Recomendamos evaluación médica hoy.",
+    redSignals: [],
+    symptoms: ["fiebre", "vómitos"],
     handover: {
       motivo: "Fiebre y vómitos desde anoche",
       prioridad: "AMARILLO" as Priority,
@@ -39,25 +56,14 @@ const demoCases = [
       sintomasAdicionales: ["fiebre", "vómitos"],
     },
   },
-].sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
+];
 
-function formatStatus(status: string) {
-  const labels: Record<string, string> = {
-    waiting: "En espera",
-    in_review: "En revisión",
-    attended: "Atendido",
-  };
-
-  return labels[status] ?? status;
-}
-
-function formatCaseDate(value: string) {
-  const date = new Date(value);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes} hs`;
-}
+const filters: { value: CaseFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "waiting", label: "En espera" },
+  { value: "in_review", label: "En revisión" },
+  { value: "attended", label: "Atendidos" },
+];
 
 function priorityClass(priority: Priority) {
   const classes: Record<Priority, string> = {
@@ -82,58 +88,68 @@ export default function ClinicDashboardPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [usingDemo, setUsingDemo] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<CaseFilter>("all");
 
-  useEffect(() => {
+  const loadCases = useCallback(async () => {
     if (!token) {
       return;
     }
 
-    let active = true;
+    setIsLoading(true);
+    setMessage("");
+    setUsingDemo(false);
 
-    async function loadCases() {
-      setIsLoading(true);
-      setMessage("");
-      setUsingDemo(false);
+    try {
+      const response = await fetch("/api/clinic/cases", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const payload = await response.json();
 
-      try {
-        const response = await fetch("/api/clinic/cases", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const payload = await response.json();
-
-        if (!active) {
-          return;
+      if (!response.ok) {
+        if (response.status === 503) {
+          setCases(sortTriageCases(demoCases));
+          setUsingDemo(true);
         }
-
-        if (!response.ok) {
-          if (response.status === 503) {
-            setCases(demoCases as TriageCase[]);
-            setUsingDemo(true);
-          }
-          setMessage(payload.error ?? "No se pudieron cargar los casos.");
-          return;
-        }
-
-        setCases(payload.cases);
-      } catch {
-        if (active) {
-          setMessage("No se pudieron cargar los casos.");
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+        setMessage(payload.error ?? "No se pudieron cargar los casos.");
+        return;
       }
+
+      setCases(sortTriageCases(payload.cases));
+    } catch {
+      setMessage("No se pudieron cargar los casos.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      loadCases();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadCases]);
+
+  const counters = useMemo(
+    () => ({
+      waiting: cases.filter((item) => item.status === "waiting").length,
+      in_review: cases.filter((item) => item.status === "in_review").length,
+      attended: cases.filter((item) => item.status === "attended").length,
+    }),
+    [cases]
+  );
+
+  const visibleCases = useMemo(() => {
+    const sortedCases = sortTriageCases(cases);
+
+    if (selectedFilter === "all") {
+      return sortedCases;
     }
 
-    loadCases();
-
-    return () => {
-      active = false;
-    };
-  }, [token]);
+    return sortedCases.filter((item) => item.status === selectedFilter);
+  }, [cases, selectedFilter]);
 
   function handleTokenSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -192,10 +208,47 @@ export default function ClinicDashboardPage() {
           </div>
         )}
 
+        {token && (
+          <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-3 text-sm text-slate-300">
+                <span>En espera: {counters.waiting}</span>
+                <span>En revisión: {counters.in_review}</span>
+                <span>Atendidos: {counters.attended}</span>
+              </div>
+              <button
+                type="button"
+                onClick={loadCases}
+                disabled={isLoading}
+                className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Actualizar casos
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {filters.map((filter) => (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => setSelectedFilter(filter.value)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    selectedFilter === filter.value
+                      ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
+                      : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isLoading && <p className="mt-8 text-slate-300">Cargando casos...</p>}
 
         <div className="mt-8 grid gap-4">
-          {cases.map((item) => (
+          {visibleCases.map((item) => (
             <article
               key={item.caseCode}
               className="grid gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 md:grid-cols-[160px_1fr_170px]"
@@ -209,10 +262,10 @@ export default function ClinicDashboardPage() {
                   {item.priority}
                 </span>
                 <p className="mt-3 text-sm text-slate-400">
-                  {formatCaseDate(item.createdAt)}
+                  {formatCaseTime(item.createdAt)}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-slate-300">
-                  {formatStatus(item.status)}
+                  {statusLabels[item.status]}
                 </p>
               </div>
 

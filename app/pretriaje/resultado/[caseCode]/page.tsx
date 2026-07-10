@@ -32,7 +32,11 @@ export default function TriageResultPage({ params }: PageProps) {
       }
 
       if (!response.ok) {
-        setError(payload.error ?? "No se pudo cargar el caso.");
+        setError(
+          response.status === 404
+            ? "No encontramos este caso."
+            : payload.error ?? "No se pudo cargar el caso."
+        );
         return;
       }
 
@@ -67,7 +71,7 @@ export default function TriageResultPage({ params }: PageProps) {
           href="/pretriaje"
           className="mt-6 inline-flex rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923]"
         >
-          Iniciar pre-triaje
+          Iniciar nuevo pre-triaje
         </Link>
       </div>
     </main>

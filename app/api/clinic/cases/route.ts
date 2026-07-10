@@ -3,7 +3,7 @@ import { validateClinicAuthorization } from "@/lib/clinicAuth";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   mapRowToTriageCase,
-  prioritySortValue,
+  sortTriageCases,
   type TriageCaseRow,
 } from "@/lib/triageCases";
 
@@ -23,30 +23,28 @@ export async function GET(request: Request) {
     );
   }
 
-  const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("triage_cases")
-    .select()
-    .order("created_at", { ascending: false })
-    .returns<TriageCaseRow[]>();
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("triage_cases")
+      .select()
+      .order("created_at", { ascending: false })
+      .returns<TriageCaseRow[]>();
 
-  if (error) {
+    if (error) {
+      return NextResponse.json(
+        { error: "No se pudieron cargar los casos." },
+        { status: 500 }
+      );
+    }
+
+    const cases = sortTriageCases(data.map(mapRowToTriageCase));
+
+    return NextResponse.json({ cases });
+  } catch {
     return NextResponse.json(
       { error: "No se pudieron cargar los casos." },
       { status: 500 }
     );
   }
-
-  const cases = data
-    .map(mapRowToTriageCase)
-    .sort((a, b) => {
-      const byPriority = prioritySortValue(a.priority) - prioritySortValue(b.priority);
-      if (byPriority !== 0) {
-        return byPriority;
-      }
-
-      return Date.parse(b.createdAt) - Date.parse(a.createdAt);
-    });
-
-  return NextResponse.json({ cases });
 }

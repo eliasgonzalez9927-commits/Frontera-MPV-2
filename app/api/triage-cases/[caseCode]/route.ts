@@ -16,16 +16,31 @@ export async function GET(
   }
 
   const { caseCode } = await context.params;
-  const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("triage_cases")
-    .select()
-    .eq("case_code", caseCode)
-    .single<TriageCaseRow>();
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
+  if (!caseCode) {
+    return NextResponse.json(
+      { error: "El codigo de caso es obligatorio." },
+      { status: 400 }
+    );
   }
 
-  return NextResponse.json({ case: mapRowToTriageCase(data) });
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("triage_cases")
+      .select()
+      .eq("case_code", caseCode)
+      .single<TriageCaseRow>();
+
+    if (error || !data) {
+      return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
+    }
+
+    return NextResponse.json({ case: mapRowToTriageCase(data) });
+  } catch {
+    return NextResponse.json(
+      { error: "No se pudo cargar el caso." },
+      { status: 500 }
+    );
+  }
 }
