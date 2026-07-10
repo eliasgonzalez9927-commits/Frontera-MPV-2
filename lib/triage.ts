@@ -6,6 +6,7 @@ export type TriageInput = {
   intensidad?: number;
   evolucion?: string;
   sintomas?: string[];
+  redFlags?: string[];
   source?: TriageSource;
 };
 
@@ -25,6 +26,10 @@ export type TriageResult = {
     senalesDetectadas: string[];
     evolucion?: string;
     sintomasAdicionales: string[];
+    patientContext?: string;
+    redFlagAnswers?: unknown;
+    flowVersion?: string;
+    estimatedPriorityReason?: string;
   };
   createdAt: string;
 };
@@ -142,7 +147,10 @@ export function analyzeTriage(input: TriageInput): TriageResult {
   const symptoms = input.sintomas ?? [];
   const motivo = input.motivo.trim();
   const intensidad = input.intensidad ?? 0;
-  const redSignals = detectRedSignals(motivo, symptoms);
+  const detectedRedSignals = detectRedSignals(motivo, symptoms);
+  const redSignals = Array.from(
+    new Set([...(input.redFlags ?? []), ...detectedRedSignals])
+  );
   const source = normalizeSource(input.source);
   const caseCode = `FR-${Date.now()}`;
 
@@ -150,12 +158,8 @@ export function analyzeTriage(input: TriageInput): TriageResult {
 
   if (redSignals.length > 0) {
     priority = "ROJO";
-  } else if (intensidad >= 9) {
-    priority = "NARANJA";
   } else if (intensidad >= 7 || hasWarningKeyword(motivo, symptoms)) {
     priority = "AMARILLO";
-  } else if (intensidad <= 3 && motivo.length > 0) {
-    priority = "AZUL";
   }
 
   return {

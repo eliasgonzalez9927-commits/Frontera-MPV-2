@@ -1,33 +1,41 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSourceLabel, normalizeSource } from "@/lib/triage";
+import { getPriorityLabel, getSourceLabel, normalizeSource } from "@/lib/triage";
+import {
+  evolutionOptions,
+  getEstimatedPriority,
+  getEstimatedPriorityReason,
+  getPositiveRedFlags,
+  isUsefulChiefComplaint,
+  redFlagQuestions,
+  type PatientContext,
+  type RedFlagAnswer,
+  type RedFlagAnswerValue,
+} from "@/lib/triageConversation";
 
-const symptomOptions = [
-  "fiebre",
-  "vómitos",
-  "sangrado",
-  "mareo",
-  "dolor de pecho",
-  "me cuesta respirar",
-  "golpe o trauma",
-];
+const totalQuestions = 4 + redFlagQuestions.length;
 
-function PreTriageForm() {
+function PreTriageWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const source = normalizeSource(searchParams.get("source"));
   const sourceLabel = getSourceLabel(source);
   const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
+  const [clinicName, setClinicName] = useState("");
+  const [step, setStep] = useState(0);
+  const [patientContext, setPatientContext] = useState<PatientContext | "">("");
   const [motivo, setMotivo] = useState("");
   const [evolucion, setEvolucion] = useState("");
   const [intensidad, setIntensidad] = useState(5);
-  const [sintomas, setSintomas] = useState<string[]>([]);
+  const [redFlagAnswers, setRedFlagAnswers] = useState<
+    Record<string, RedFlagAnswerValue>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [clinicName, setClinicName] = useState("");
 
   useEffect(() => {
     if (!clinicSlug) {
@@ -56,35 +64,65 @@ function PreTriageForm() {
     };
   }, [clinicSlug]);
 
-  function toggleSymptom(symptom: string) {
-    setSintomas((current) =>
-      current.includes(symptom)
-        ? current.filter((item) => item !== symptom)
-        : [...current, symptom]
-    );
+  const answers: RedFlagAnswer[] = useMemo(
+    () =>
+      redFlagQuestions.map((item) => ({
+        id: item.id,
+        question: item.question,
+        signal: item.signal,
+        answer: redFlagAnswers[item.id] ?? "no",
+      })),
+    [redFlagAnswers]
+  );
+  const positiveRedFlags = getPositiveRedFlags(answers);
+  const estimatedPriority = getEstimatedPriority(intensidad, answers);
+  const estimatedPriorityReason = getEstimatedPriorityReason(
+    estimatedPriority,
+    intensidad
+  );
+  const headerTitle = clinicSlug
+    ? `Pre-triaje de guardia${clinicName ? ` · ${clinicName}` : ""}`
+    : "Pre-triaje Frontera";
+  const questionNumber = step > 0 && step <= totalQuestions ? step : null;
+
+  function goBack() {
+    setError("");
+    setStep((current) => Math.max(0, current - 1));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function goNext() {
+    setError("");
 
+    if (step === 1 && !patientContext) {
+      setError("Elegí si estás completando esto para vos o para otra persona.");
+      return;
+    }
+
+    if (step === 2 && !isUsefulChiefComplaint(motivo)) {
+      setError("Necesitamos una descripción más clara para poder orientarte.");
+      return;
+    }
+
+    if (step === 3 && !evolucion) {
+      setError("Elegí una opción para continuar.");
+      return;
+    }
+
+    setStep((current) => Math.min(totalQuestions + 1, current + 1));
+  }
+
+  function setRedFlagAnswer(id: string, answer: RedFlagAnswerValue) {
+    setRedFlagAnswers((current) => ({ ...current, [id]: answer }));
+    setError("");
+  }
+
+  async function createCase() {
     if (isSubmitting) {
       return;
     }
 
-    const trimmedMotivo = motivo.trim();
-
-    if (!trimmedMotivo) {
-      setError("El motivo de consulta es obligatorio.");
-      return;
-    }
-
-    if (trimmedMotivo.length < 10) {
-      setError("Contanos el motivo con al menos 10 caracteres.");
-      return;
-    }
-
-    if (intensidad < 1 || intensidad > 10) {
-      setError("La intensidad debe estar entre 1 y 10.");
+    if (!isUsefulChiefComplaint(motivo)) {
+      setError("Necesitamos una descripción más clara para poder orientarte.");
       return;
     }
 
@@ -98,10 +136,15 @@ function PreTriageForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          motivo: trimmedMotivo,
-          evolucion: evolucion.trim(),
+          motivo: motivo.trim(),
+          evolucion: evolucion || "No informado",
           intensidad,
-          sintomas,
+          sintomas: positiveRedFlags,
+          redFlags: positiveRedFlags,
+          redFlagAnswers: answers,
+          patientContext,
+          estimatedPriorityReason,
+          flowVersion: "conversation-v1",
           source,
           clinic: clinicSlug || undefined,
         }),
@@ -121,6 +164,9 @@ function PreTriageForm() {
     }
   }
 
+  const redFlagStepIndex = step - 5;
+  const currentRedFlag = redFlagQuestions[redFlagStepIndex];
+
   return (
     <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
       <section className="mx-auto max-w-3xl">
@@ -130,121 +176,242 @@ function PreTriageForm() {
 
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-semibold text-[#9df3e9]">
-              Pre-triaje público
-            </p>
+            <p className="text-sm font-semibold text-[#9df3e9]">{headerTitle}</p>
             <span className="rounded-full border border-[#52d6c4]/30 bg-[#52d6c4]/10 px-3 py-1 text-xs font-bold text-[#9df3e9]">
-              {clinicName ? `${sourceLabel} · ${clinicName}` : sourceLabel}
+              {sourceLabel}
             </span>
           </div>
 
-          <h1 className="mt-3 text-4xl font-black tracking-tight">
-            Contanos qué te está pasando ahora.
-          </h1>
+          {questionNumber && (
+            <p className="mt-5 text-sm text-slate-400">
+              Pregunta {questionNumber} de {totalQuestions}
+            </p>
+          )}
 
-          <p className="mt-4 text-slate-300">
-            Este flujo ayuda a estimar prioridad y preparar un resumen para el
-            equipo médico. No reemplaza una evaluación médica.
-          </p>
+          {step === 0 && (
+            <div className="mt-6">
+              <h1 className="text-4xl font-black tracking-tight">
+                Te vamos a hacer algunas preguntas rápidas, una por una.
+              </h1>
+              <p className="mt-4 text-slate-300">
+                Frontera no diagnostica ni reemplaza al equipo médico. Si estás
+                en una emergencia con riesgo inmediato, contactá emergencias o
+                dirigite a una guardia.
+              </p>
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-            <div>
-              <label className="text-sm font-semibold text-slate-200">
-                Motivo de consulta
-              </label>
+          {step === 1 && (
+            <QuestionBlock title="¿Estás completando esto para vos o para otra persona?">
+              <ChoiceButton
+                active={patientContext === "self"}
+                onClick={() => setPatientContext("self")}
+              >
+                Para mí
+              </ChoiceButton>
+              <ChoiceButton
+                active={patientContext === "other"}
+                onClick={() => setPatientContext("other")}
+              >
+                Para otra persona
+              </ChoiceButton>
+            </QuestionBlock>
+          )}
+
+          {step === 2 && (
+            <QuestionBlock title="¿Qué te está pasando ahora?">
               <textarea
-                required
-                minLength={10}
                 value={motivo}
                 onChange={(event) => setMotivo(event.target.value)}
-                placeholder="Ej: Me duele mucho la panza desde hace 4 horas..."
-                className="mt-2 min-h-36 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none ring-[#52d6c4]/40 placeholder:text-slate-500 focus:ring-4"
+                placeholder="Ej: Me duele fuerte el abdomen desde hace unas horas..."
+                className="min-h-36 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none ring-[#52d6c4]/40 placeholder:text-slate-500 focus:ring-4"
               />
-            </div>
+            </QuestionBlock>
+          )}
 
-            <div>
-              <label className="text-sm font-semibold text-slate-200">
-                ¿Desde cuándo empezó?
-              </label>
-              <input
-                value={evolucion}
-                onChange={(event) => setEvolucion(event.target.value)}
-                placeholder="Ej: hace 2 horas, desde ayer, recién..."
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none ring-[#52d6c4]/40 placeholder:text-slate-500 focus:ring-4"
-              />
-            </div>
+          {step === 3 && (
+            <QuestionBlock title="¿Desde cuándo empezó?">
+              {evolutionOptions.map((option) => (
+                <ChoiceButton
+                  key={option}
+                  active={evolucion === option}
+                  onClick={() => setEvolucion(option)}
+                >
+                  {option}
+                </ChoiceButton>
+              ))}
+            </QuestionBlock>
+          )}
 
-            <div>
-              <label className="text-sm font-semibold text-slate-200">
-                Intensidad del síntoma principal: {intensidad}/10
-              </label>
+          {step === 4 && (
+            <QuestionBlock title="Del 1 al 10, ¿qué intensidad tiene?">
+              <p className="text-5xl font-black text-[#52d6c4]">{intensidad}</p>
               <input
                 type="range"
                 min="1"
                 max="10"
                 value={intensidad}
                 onChange={(event) => setIntensidad(Number(event.target.value))}
-                className="mt-3 w-full"
+                className="mt-4 w-full"
+              />
+            </QuestionBlock>
+          )}
+
+          {currentRedFlag && (
+            <QuestionBlock title={currentRedFlag.question}>
+              {(["yes", "no", "unsure"] as RedFlagAnswerValue[]).map((answer) => (
+                <ChoiceButton
+                  key={answer}
+                  active={redFlagAnswers[currentRedFlag.id] === answer}
+                  onClick={() => setRedFlagAnswer(currentRedFlag.id, answer)}
+                >
+                  {answer === "yes"
+                    ? "Sí"
+                    : answer === "no"
+                      ? "No"
+                      : "No estoy seguro"}
+                </ChoiceButton>
+              ))}
+              {positiveRedFlags.length > 0 && (
+                <RedAlert>
+                  Por lo que contás, esto puede requerir atención inmediata. No
+                  esperes respuesta por este sistema. Contactá emergencias o
+                  dirigite a una guardia ahora.
+                </RedAlert>
+              )}
+            </QuestionBlock>
+          )}
+
+          {step === totalQuestions + 1 && (
+            <div className="mt-6 space-y-4">
+              <h1 className="text-3xl font-black">Resumen antes de crear el caso</h1>
+              {estimatedPriority === "ROJO" && (
+                <RedAlert>
+                  Por lo que contás, esto puede requerir atención inmediata. No
+                  esperes respuesta por este sistema. Contactá emergencias o
+                  dirigite a una guardia ahora.
+                </RedAlert>
+              )}
+              <SummaryItem label="Motivo" value={motivo} />
+              <SummaryItem label="Tiempo de evolución" value={evolucion || "No informado"} />
+              <SummaryItem label="Intensidad" value={`${intensidad}/10`} />
+              <SummaryItem
+                label="Señales rojas respondidas"
+                value={
+                  positiveRedFlags.length > 0
+                    ? positiveRedFlags.join(", ")
+                    : "Sin señales rojas confirmadas"
+                }
+              />
+              <SummaryItem
+                label="Prioridad estimada"
+                value={`${estimatedPriority} · ${getPriorityLabel(estimatedPriority)}`}
               />
             </div>
+          )}
 
-            <div>
-              <p className="text-sm font-semibold text-slate-200">
-                ¿Aparece algo de esto?
-              </p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {symptomOptions.map((symptom) => {
-                  const active = sintomas.includes(symptom);
-
-                  return (
-                    <button
-                      key={symptom}
-                      type="button"
-                      onClick={() => toggleSymptom(symptom)}
-                      className={`rounded-full border px-4 py-2 text-sm transition ${
-                        active
-                          ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
-                          : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-                      }`}
-                    >
-                      {symptom}
-                    </button>
-                  );
-                })}
-              </div>
+          {error && (
+            <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
+              {error}
             </div>
+          )}
 
-            <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
-              Si tenés dolor de pecho intenso, falta de aire severa, pérdida de
-              conocimiento, convulsiones, sangrado abundante o riesgo vital,
-              contactá emergencias o dirigite a una guardia.
-            </div>
-
-            {error && (
-              <div className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
-                {error}
-              </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={goBack}
+                className="rounded-2xl border border-white/10 px-5 py-3 font-bold text-white transition hover:bg-white/10"
+              >
+                Volver
+              </button>
             )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-2xl bg-[#52d6c4] px-6 py-4 font-black text-[#071923] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? "Creando caso..." : "Evaluar urgencia"}
-            </button>
-          </form>
+            {step < totalQuestions + 1 ? (
+              <button
+                type="button"
+                onClick={goNext}
+                className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]"
+              >
+                {step === 0 ? "Empezar" : "Continuar"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={createCase}
+                className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting ? "Creando caso..." : "Crear pre-triaje"}
+              </button>
+            )}
+          </div>
         </div>
       </section>
     </main>
   );
 }
 
+function QuestionBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-6">
+      <h1 className="text-3xl font-black tracking-tight">{title}</h1>
+      <div className="mt-6 flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
+
+function ChoiceButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border px-5 py-4 text-left font-bold transition ${
+        active
+          ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
+          : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RedAlert({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-red-300/30 bg-red-500/15 p-4 text-sm font-semibold leading-6 text-red-100">
+      {children}
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#0d2530] p-4">
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="mt-1 font-semibold">{value}</p>
+    </div>
+  );
+}
+
 export default function PreTriagePage() {
   return (
     <Suspense fallback={null}>
-      <PreTriageForm />
+      <PreTriageWizard />
     </Suspense>
   );
 }

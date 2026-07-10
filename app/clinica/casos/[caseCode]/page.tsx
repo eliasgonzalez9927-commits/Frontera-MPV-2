@@ -9,6 +9,7 @@ import {
   type CaseStatus,
   type TriageCase,
 } from "@/lib/triageCases";
+import type { RedFlagAnswer } from "@/lib/triageConversation";
 
 type PageProps = {
   params: Promise<{ caseCode: string }>;
@@ -34,6 +35,14 @@ function ClinicCaseDetailContent({ params }: PageProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const conversationHandover = caseData?.handover as
+    | (TriageCase["handover"] & {
+        patientContext?: string;
+        redFlagAnswers?: RedFlagAnswer[];
+        estimatedPriorityReason?: string;
+        flowVersion?: string;
+      })
+    | undefined;
 
   useEffect(() => {
     let active = true;
@@ -300,6 +309,50 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                   {caseData.recommendation}
                 </p>
               </div>
+              {conversationHandover?.patientContext && (
+                <div className="rounded-2xl bg-[#0d2530] p-4">
+                  <p className="text-sm text-slate-400">Completado para</p>
+                  <p className="mt-1 font-semibold">
+                    {conversationHandover.patientContext === "self"
+                      ? "Para mí"
+                      : "Para otra persona"}
+                  </p>
+                </div>
+              )}
+              {conversationHandover?.estimatedPriorityReason && (
+                <div className="rounded-2xl bg-[#0d2530] p-4">
+                  <p className="text-sm text-slate-400">
+                    Motivo de prioridad estimada
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {conversationHandover.estimatedPriorityReason}
+                  </p>
+                </div>
+              )}
+              {conversationHandover?.redFlagAnswers &&
+                conversationHandover.redFlagAnswers.length > 0 && (
+                  <div className="rounded-2xl bg-[#0d2530] p-4">
+                    <p className="text-sm text-slate-400">
+                      Respuestas de señales rojas
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {conversationHandover.redFlagAnswers.map((answer) => (
+                        <p key={answer.id} className="text-sm">
+                          <span className="text-slate-300">
+                            {answer.question}
+                          </span>{" "}
+                          <span className="font-bold text-white">
+                            {answer.answer === "yes"
+                              ? "Sí"
+                              : answer.answer === "no"
+                                ? "No"
+                                : "No estoy seguro"}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         )}

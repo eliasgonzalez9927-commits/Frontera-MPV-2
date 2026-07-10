@@ -8,6 +8,7 @@ import {
   normalizeSource,
 } from "@/lib/triage";
 import { getActiveClinicBySlug } from "@/lib/clinics";
+import { isUsefulChiefComplaint } from "@/lib/triageConversation";
 import { mapRowToTriageCase, type TriageCaseRow } from "@/lib/triageCases";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,11 @@ export async function POST(request: Request) {
     evolucion?: unknown;
     intensidad?: unknown;
     sintomas?: unknown;
+    redFlags?: unknown;
+    redFlagAnswers?: unknown;
+    patientContext?: unknown;
+    estimatedPriorityReason?: unknown;
+    flowVersion?: unknown;
     source?: unknown;
     clinic?: unknown;
     clinic_slug?: unknown;
@@ -50,6 +56,20 @@ export async function POST(request: Request) {
   const sintomas = Array.isArray(body.sintomas)
     ? body.sintomas.filter((item): item is string => typeof item === "string")
     : [];
+  const redFlags = Array.isArray(body.redFlags)
+    ? body.redFlags.filter((item): item is string => typeof item === "string")
+    : [];
+  const redFlagAnswers = Array.isArray(body.redFlagAnswers)
+    ? body.redFlagAnswers
+    : [];
+  const patientContext =
+    typeof body.patientContext === "string" ? body.patientContext : undefined;
+  const estimatedPriorityReason =
+    typeof body.estimatedPriorityReason === "string"
+      ? body.estimatedPriorityReason
+      : undefined;
+  const flowVersion =
+    typeof body.flowVersion === "string" ? body.flowVersion : undefined;
   const source = normalizeSource(
     typeof body.source === "string" ? body.source : undefined
   );
@@ -67,9 +87,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (motivo.length < 10) {
+  if (!isUsefulChiefComplaint(motivo)) {
     return NextResponse.json(
-      { error: "El motivo de consulta debe tener al menos 10 caracteres." },
+      { error: "Necesitamos una descripcion mas clara para poder orientarte." },
       { status: 400 }
     );
   }
@@ -89,6 +109,7 @@ export async function POST(request: Request) {
     evolucion,
     intensidad,
     sintomas,
+    redFlags,
     source,
   });
   const caseCode = createCaseCode();
@@ -129,6 +150,10 @@ export async function POST(request: Request) {
           ...result.handover,
           motivo,
           evolucion: evolucion || undefined,
+          patientContext,
+          redFlagAnswers,
+          flowVersion,
+          estimatedPriorityReason,
         },
         status: "waiting",
       })
