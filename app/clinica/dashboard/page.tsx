@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSearchParams } from "next/navigation";
 import type { Priority } from "@/lib/triage";
 import {
   formatCaseTime,
@@ -77,18 +85,51 @@ function priorityClass(priority: Priority) {
   return classes[priority];
 }
 
-export default function ClinicDashboardPage() {
+function ClinicDashboardContent() {
+  const searchParams = useSearchParams();
+  const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
+  const tokenStorageKey = clinicSlug
+    ? `frontera-clinic-token:${clinicSlug}`
+    : "frontera-clinic-token";
   const [token, setToken] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : sessionStorage.getItem("frontera-clinic-token") ?? ""
+      : sessionStorage.getItem(tokenStorageKey) ?? ""
   );
   const [tokenInput, setTokenInput] = useState("");
+  const [clinicName, setClinicName] = useState("");
   const [cases, setCases] = useState<TriageCase[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [usingDemo, setUsingDemo] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<CaseFilter>("all");
+
+  useEffect(() => {
+    if (!clinicSlug) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/clinics/${clinicSlug}`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (active && payload?.clinic?.name) {
+            setClinicName(payload.clinic.name);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setClinicName("");
+          }
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [clinicSlug]);
 
   const loadCases = useCallback(async () => {
     if (!token) {
@@ -99,8 +140,10 @@ export default function ClinicDashboardPage() {
     setMessage("");
     setUsingDemo(false);
 
+    const query = clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : "";
+
     try {
-      const response = await fetch("/api/clinic/cases", {
+      const response = await fetch(`/api/clinic/cases${query}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -122,7 +165,7 @@ export default function ClinicDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [clinicSlug, token]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -154,7 +197,7 @@ export default function ClinicDashboardPage() {
   function handleTokenSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextToken = tokenInput.trim();
-    sessionStorage.setItem("frontera-clinic-token", nextToken);
+    sessionStorage.setItem(tokenStorageKey, nextToken);
     setToken(nextToken);
   }
 
@@ -170,12 +213,22 @@ export default function ClinicDashboardPage() {
               Casos en espera
             </h1>
             <p className="mt-2 text-slate-300">
-              Vista de casos en espera, ordenados por prioridad de urgencia.
+              {clinicSlug
+                ? clinicName || `Clínica: ${clinicSlug}`
+                : "Vista general de casos en espera"}
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-slate-300">
             Entrada QR: <span className="font-bold text-white">activa</span>
+            {clinicSlug && (
+              <Link
+                href={`/clinica/qr?clinic=${encodeURIComponent(clinicSlug)}`}
+                className="ml-3 font-bold text-[#9df3e9] underline-offset-4 hover:underline"
+              >
+                Ver QR de guardia
+              </Link>
+            )}
           </div>
         </header>
 
@@ -185,7 +238,9 @@ export default function ClinicDashboardPage() {
             className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
           >
             <label className="text-sm font-semibold text-slate-200">
-              Token temporal de clínica
+              {clinicSlug
+                ? "Token temporal de esta clínica"
+                : "Token temporal de clínica"}
             </label>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row">
               <input
@@ -282,7 +337,9 @@ export default function ClinicDashboardPage() {
 
               <div className="flex items-start justify-end">
                 <Link
-                  href={`/clinica/casos/${item.caseCode}`}
+                  href={`/clinica/casos/${item.caseCode}${
+                    clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
+                  }`}
                   className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
                 >
                   Ver resumen
@@ -293,5 +350,13 @@ export default function ClinicDashboardPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ClinicDashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClinicDashboardContent />
+    </Suspense>
   );
 }

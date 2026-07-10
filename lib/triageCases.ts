@@ -8,6 +8,9 @@ export type TriageCase = TriageResult & {
   evolution?: string;
   intensity?: number;
   symptoms: string[];
+  clinicId?: string;
+  clinicSlug?: string;
+  clinicName?: string;
 };
 
 export type TriageCaseRow = {
@@ -27,6 +30,12 @@ export type TriageCaseRow = {
   handover: TriageResult["handover"];
   status: CaseStatus;
   created_at: string;
+  clinic_id: string | null;
+  clinic_slug: string | null;
+  clinics?: {
+    name: string;
+    slug: string;
+  } | null;
 };
 
 export const allowedStatuses: CaseStatus[] = ["waiting", "in_review", "attended"];
@@ -55,6 +64,9 @@ export function mapRowToTriageCase(row: TriageCaseRow): TriageCase {
     evolution: row.evolution ?? undefined,
     intensity: row.intensity ?? undefined,
     symptoms: row.symptoms,
+    clinicId: row.clinic_id ?? undefined,
+    clinicSlug: row.clinic_slug ?? undefined,
+    clinicName: row.clinics?.name,
   };
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import {
   formatCaseDate,
   statusLabels,
@@ -13,12 +14,20 @@ type PageProps = {
   params: Promise<{ caseCode: string }>;
 };
 
-export default function ClinicCaseDetailPage({ params }: PageProps) {
+function ClinicCaseDetailContent({ params }: PageProps) {
+  const searchParams = useSearchParams();
+  const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
+  const tokenStorageKey = clinicSlug
+    ? `frontera-clinic-token:${clinicSlug}`
+    : "frontera-clinic-token";
+  const dashboardHref = `/clinica/dashboard${
+    clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
+  }`;
   const [caseCode, setCaseCode] = useState("");
   const [token, setToken] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : sessionStorage.getItem("frontera-clinic-token") ?? ""
+      : sessionStorage.getItem(tokenStorageKey) ?? ""
   );
   const [tokenInput, setTokenInput] = useState("");
   const [caseData, setCaseData] = useState<TriageCase | null>(null);
@@ -49,13 +58,16 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
     }
 
     let active = true;
+    const clinicQuery = clinicSlug
+      ? `?clinic=${encodeURIComponent(clinicSlug)}`
+      : "";
 
     async function loadCase() {
       setIsLoading(true);
       setMessage("");
 
       try {
-        const response = await fetch(`/api/clinic/cases/${caseCode}`, {
+        const response = await fetch(`/api/clinic/cases/${caseCode}${clinicQuery}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -92,11 +104,11 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
     return () => {
       active = false;
     };
-  }, [token, caseCode]);
+  }, [token, caseCode, clinicSlug]);
 
   function saveToken() {
     const nextToken = tokenInput.trim();
-    sessionStorage.setItem("frontera-clinic-token", nextToken);
+    sessionStorage.setItem(tokenStorageKey, nextToken);
     setToken(nextToken);
   }
 
@@ -104,8 +116,12 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
     setMessage("");
     setIsUpdating(true);
 
+    const clinicQuery = clinicSlug
+      ? `?clinic=${encodeURIComponent(clinicSlug)}`
+      : "";
+
     try {
-      const response = await fetch(`/api/clinic/cases/${caseCode}`, {
+      const response = await fetch(`/api/clinic/cases/${caseCode}${clinicQuery}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +151,7 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
       <section className="mx-auto max-w-4xl">
-        <Link href="/clinica/dashboard" className="text-sm text-[#9df3e9]">
+        <Link href={dashboardHref} className="text-sm text-[#9df3e9]">
           ← Volver al dashboard
         </Link>
 
@@ -146,7 +162,9 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
         {!token && (
           <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
             <label className="text-sm font-semibold text-slate-200">
-              Token temporal de clínica
+              {clinicSlug
+                ? "Token temporal de esta clínica"
+                : "Token temporal de clínica"}
             </label>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row">
               <input
@@ -169,7 +187,7 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
         {message && (
           <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
             {message}{" "}
-            <Link href="/clinica/dashboard" className="font-bold underline">
+            <Link href={dashboardHref} className="font-bold underline">
               Volver al dashboard
             </Link>
           </div>
@@ -185,6 +203,11 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
                 <p className="mt-1 text-2xl font-black">
                   {caseData.caseCode}
                 </p>
+                {caseData.clinicName && (
+                  <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
+                    {caseData.clinicName}
+                  </p>
+                )}
               </div>
               <div className="flex flex-wrap gap-3">
                 {caseData.status === "waiting" && (
@@ -282,5 +305,13 @@ export default function ClinicCaseDetailPage({ params }: PageProps) {
         )}
       </section>
     </main>
+  );
+}
+
+export default function ClinicCaseDetailPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={null}>
+      <ClinicCaseDetailContent params={params} />
+    </Suspense>
   );
 }

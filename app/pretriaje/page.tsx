@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSourceLabel, normalizeSource } from "@/lib/triage";
 
@@ -20,12 +20,41 @@ function PreTriageForm() {
   const searchParams = useSearchParams();
   const source = normalizeSource(searchParams.get("source"));
   const sourceLabel = getSourceLabel(source);
+  const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
   const [motivo, setMotivo] = useState("");
   const [evolucion, setEvolucion] = useState("");
   const [intensidad, setIntensidad] = useState(5);
   const [sintomas, setSintomas] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [clinicName, setClinicName] = useState("");
+
+  useEffect(() => {
+    if (!clinicSlug) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/clinics/${clinicSlug}`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (active && payload?.clinic?.name) {
+            setClinicName(payload.clinic.name);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setClinicName("");
+          }
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [clinicSlug]);
 
   function toggleSymptom(symptom: string) {
     setSintomas((current) =>
@@ -74,6 +103,7 @@ function PreTriageForm() {
           intensidad,
           sintomas,
           source,
+          clinic: clinicSlug || undefined,
         }),
       });
       const payload = await response.json();
@@ -104,7 +134,7 @@ function PreTriageForm() {
               Pre-triaje público
             </p>
             <span className="rounded-full border border-[#52d6c4]/30 bg-[#52d6c4]/10 px-3 py-1 text-xs font-bold text-[#9df3e9]">
-              {sourceLabel}
+              {clinicName ? `${sourceLabel} · ${clinicName}` : sourceLabel}
             </span>
           </div>
 

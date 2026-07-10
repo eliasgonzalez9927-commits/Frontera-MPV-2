@@ -7,6 +7,7 @@ import {
   getSourceLabel,
   normalizeSource,
 } from "@/lib/triage";
+import { getActiveClinicBySlug } from "@/lib/clinics";
 import { mapRowToTriageCase, type TriageCaseRow } from "@/lib/triageCases";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
     intensidad?: unknown;
     sintomas?: unknown;
     source?: unknown;
+    clinic?: unknown;
+    clinic_slug?: unknown;
   };
 
   const motivo = typeof body.motivo === "string" ? body.motivo.trim() : "";
@@ -50,6 +53,12 @@ export async function POST(request: Request) {
   const source = normalizeSource(
     typeof body.source === "string" ? body.source : undefined
   );
+  const clinicSlug =
+    typeof body.clinic === "string"
+      ? body.clinic.trim()
+      : typeof body.clinic_slug === "string"
+        ? body.clinic_slug.trim()
+        : "";
 
   if (!motivo) {
     return NextResponse.json(
@@ -86,6 +95,18 @@ export async function POST(request: Request) {
 
   try {
     const supabase = getSupabaseServerClient();
+    const clinicResult = clinicSlug
+      ? await getActiveClinicBySlug(clinicSlug)
+      : null;
+
+    if (clinicResult && !clinicResult.ok) {
+      return NextResponse.json(
+        { error: "Clinica no encontrada o inactiva." },
+        { status: 400 }
+      );
+    }
+
+    const clinic = clinicResult?.ok ? clinicResult.clinic : null;
 
     const { data, error } = await supabase
       .from("triage_cases")
@@ -102,6 +123,8 @@ export async function POST(request: Request) {
         priority: result.priority,
         priority_label: getPriorityLabel(result.priority),
         recommendation: result.recommendation,
+        clinic_id: clinic?.id ?? null,
+        clinic_slug: clinic?.slug ?? null,
         handover: {
           ...result.handover,
           motivo,
@@ -109,7 +132,7 @@ export async function POST(request: Request) {
         },
         status: "waiting",
       })
-      .select()
+      .select("*, clinics(name,slug)")
       .single<TriageCaseRow>();
 
     if (error) {

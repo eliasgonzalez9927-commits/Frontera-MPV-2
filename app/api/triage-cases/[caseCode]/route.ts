@@ -28,7 +28,7 @@ export async function GET(
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("triage_cases")
-      .select()
+      .select("*, clinics(name,slug)")
       .eq("case_code", caseCode)
       .single<TriageCaseRow>();
 

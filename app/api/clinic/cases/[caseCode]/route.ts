@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateClinicAuthorization } from "@/lib/clinicAuth";
+import { validateClinicTokenBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   allowedStatuses,
@@ -10,21 +11,42 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function getCase(caseCode: string) {
+async function getCase(caseCode: string, clinicId?: string) {
   const supabase = getSupabaseServerClient();
 
-  return supabase
+  let query = supabase
     .from("triage_cases")
-    .select()
-    .eq("case_code", caseCode)
-    .single<TriageCaseRow>();
+    .select("*, clinics(name,slug)")
+    .eq("case_code", caseCode);
+
+  if (clinicId) {
+    query = query.eq("clinic_id", clinicId);
+  }
+
+  return query.single<TriageCaseRow>();
+}
+
+async function validateClinicScope(request: Request) {
+  const clinicSlug = new URL(request.url).searchParams.get("clinic")?.trim();
+
+  if (clinicSlug) {
+    return validateClinicTokenBySlug(clinicSlug, request);
+  }
+
+  const auth = validateClinicAuthorization(request);
+
+  if (!auth.ok) {
+    return { ok: false as const, status: auth.status, message: auth.message };
+  }
+
+  return { ok: true as const, clinic: undefined };
 }
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ caseCode: string }> }
 ) {
-  const auth = validateClinicAuthorization(request);
+  const auth = await validateClinicScope(request);
 
   if (!auth.ok) {
     return NextResponse.json({ error: auth.message }, { status: auth.status });
@@ -47,10 +69,10 @@ export async function GET(
   }
 
   try {
-    const { data, error } = await getCase(caseCode);
+    const { data, error } = await getCase(caseCode, auth.clinic?.id);
 
     if (error || !data) {
-      return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Caso no encontrado para esta clinica." }, { status: 404 });
     }
 
     return NextResponse.json({ case: mapRowToTriageCase(data) });
@@ -66,7 +88,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ caseCode: string }> }
 ) {
-  const auth = validateClinicAuthorization(request);
+  const auth = await validateClinicScope(request);
 
   if (!auth.ok) {
     return NextResponse.json({ error: auth.message }, { status: auth.status });
@@ -107,17 +129,23 @@ export async function PATCH(
 
   try {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("triage_cases")
       .update({ status })
-      .eq("case_code", caseCode)
-      .select()
+      .eq("case_code", caseCode);
+
+    if (auth.clinic?.id) {
+      query = query.eq("clinic_id", auth.clinic.id);
+    }
+
+    const { data, error } = await query
+      .select("*, clinics(name,slug)")
       .single<TriageCaseRow>();
 
     if (error || !data) {
       return NextResponse.json(
-        { error: "No se pudo actualizar el caso." },
-        { status: 500 }
+        { error: "No se pudo actualizar el caso para esta clinica." },
+        { status: 404 }
       );
     }
 
