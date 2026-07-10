@@ -12,6 +12,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import type { Priority } from "@/lib/triage";
 import {
+  getCaseOriginLabel,
   formatCaseTime,
   sortTriageCases,
   statusLabels,
@@ -330,7 +331,7 @@ function ClinicDashboardContent() {
                   {item.patientLabel}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
-                  Origen: {item.sourceLabel}
+                  Origen: {getCaseOriginLabel(item)}
                 </p>
                 <p className="mt-3 text-slate-300">{item.recommendation}</p>
               </div>

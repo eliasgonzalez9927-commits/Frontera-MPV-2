@@ -30,6 +30,9 @@ export type TriageResult = {
     redFlagAnswers?: unknown;
     flowVersion?: string;
     estimatedPriorityReason?: string;
+    entryMode?: string;
+    orientationIntent?: boolean;
+    orientationMessage?: string;
   };
   createdAt: string;
 };

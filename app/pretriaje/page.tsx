@@ -6,27 +6,33 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPriorityLabel, getSourceLabel, normalizeSource } from "@/lib/triage";
 import {
+  entryModeLabels,
   evolutionOptions,
   getEstimatedPriority,
   getEstimatedPriorityReason,
+  getOrientationMessage,
   getPositiveRedFlags,
   isUsefulChiefComplaint,
   redFlagQuestions,
+  type EntryMode,
   type PatientContext,
   type RedFlagAnswer,
   type RedFlagAnswerValue,
 } from "@/lib/triageConversation";
 
-const totalQuestions = 4 + redFlagQuestions.length;
+const redFlagStartStep = 6;
+const summaryStep = redFlagStartStep + redFlagQuestions.length;
 
 function PreTriageWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const source = normalizeSource(searchParams.get("source"));
-  const sourceLabel = getSourceLabel(source);
   const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
+  const hasClinic = Boolean(clinicSlug);
+  const source = hasClinic ? normalizeSource(searchParams.get("source")) : "web";
+  const sourceLabel = getSourceLabel(source);
   const [clinicName, setClinicName] = useState("");
   const [step, setStep] = useState(0);
+  const [entryMode, setEntryMode] = useState<EntryMode | "">("");
   const [patientContext, setPatientContext] = useState<PatientContext | "">("");
   const [motivo, setMotivo] = useState("");
   const [evolucion, setEvolucion] = useState("");
@@ -39,7 +45,8 @@ function PreTriageWizard() {
 
   useEffect(() => {
     if (!clinicSlug) {
-      return;
+      const timer = window.setTimeout(() => setClinicName(""), 0);
+      return () => window.clearTimeout(timer);
     }
 
     let active = true;
@@ -64,6 +71,12 @@ function PreTriageWizard() {
     };
   }, [clinicSlug]);
 
+  const effectiveEntryMode: EntryMode = hasClinic
+    ? "clinic_qr"
+    : entryMode || "onsite_unknown";
+  const orientationIntent = effectiveEntryMode === "needs_orientation";
+  const totalQuestions = (hasClinic ? 4 : 5) + redFlagQuestions.length;
+
   const answers: RedFlagAnswer[] = useMemo(
     () =>
       redFlagQuestions.map((item) => ({
@@ -80,35 +93,54 @@ function PreTriageWizard() {
     estimatedPriority,
     intensidad
   );
-  const headerTitle = clinicSlug
+  const orientationMessage = getOrientationMessage(estimatedPriority);
+  const headerTitle = hasClinic
     ? `Pre-triaje de guardia${clinicName ? ` · ${clinicName}` : ""}`
-    : "Pre-triaje Frontera";
-  const questionNumber = step > 0 && step <= totalQuestions ? step : null;
+    : orientationIntent
+      ? "Orientación general Frontera"
+      : "Pre-triaje Frontera";
+  const questionNumber = getQuestionNumber(step, hasClinic);
 
   function goBack() {
     setError("");
-    setStep((current) => Math.max(0, current - 1));
+    setStep((current) => {
+      if (current === 2 && hasClinic) {
+        return 0;
+      }
+
+      return Math.max(0, current - 1);
+    });
   }
 
   function goNext() {
     setError("");
 
-    if (step === 1 && !patientContext) {
+    if (step === 0) {
+      setStep(hasClinic ? 2 : 1);
+      return;
+    }
+
+    if (step === 1 && !hasClinic && !entryMode) {
+      setError("Elegí dónde estás ahora para orientar mejor el pre-triaje.");
+      return;
+    }
+
+    if (step === 2 && !patientContext) {
       setError("Elegí si estás completando esto para vos o para otra persona.");
       return;
     }
 
-    if (step === 2 && !isUsefulChiefComplaint(motivo)) {
+    if (step === 3 && !isUsefulChiefComplaint(motivo)) {
       setError("Necesitamos una descripción más clara para poder orientarte.");
       return;
     }
 
-    if (step === 3 && !evolucion) {
+    if (step === 4 && !evolucion) {
       setError("Elegí una opción para continuar.");
       return;
     }
 
-    setStep((current) => Math.min(totalQuestions + 1, current + 1));
+    setStep((current) => Math.min(summaryStep, current + 1));
   }
 
   function setRedFlagAnswer(id: string, answer: RedFlagAnswerValue) {
@@ -144,9 +176,12 @@ function PreTriageWizard() {
           redFlagAnswers: answers,
           patientContext,
           estimatedPriorityReason,
-          flowVersion: "conversation-v1",
+          flowVersion: "conversation-v2",
           source,
           clinic: clinicSlug || undefined,
+          entryMode: effectiveEntryMode,
+          orientationIntent,
+          orientationMessage: orientationIntent ? orientationMessage : undefined,
         }),
       });
       const payload = await response.json();
@@ -164,8 +199,11 @@ function PreTriageWizard() {
     }
   }
 
-  const redFlagStepIndex = step - 5;
-  const currentRedFlag = redFlagQuestions[redFlagStepIndex];
+  const redFlagStepIndex = step - redFlagStartStep;
+  const currentRedFlag =
+    step >= redFlagStartStep && step < summaryStep
+      ? redFlagQuestions[redFlagStepIndex]
+      : undefined;
 
   return (
     <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
@@ -180,6 +218,11 @@ function PreTriageWizard() {
             <span className="rounded-full border border-[#52d6c4]/30 bg-[#52d6c4]/10 px-3 py-1 text-xs font-bold text-[#9df3e9]">
               {sourceLabel}
             </span>
+            {entryMode && !hasClinic && (
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-200">
+                {entryModeLabels[entryMode]}
+              </span>
+            )}
           </div>
 
           {questionNumber && (
@@ -201,7 +244,24 @@ function PreTriageWizard() {
             </div>
           )}
 
-          {step === 1 && (
+          {step === 1 && !hasClinic && (
+            <QuestionBlock title="¿Dónde estás ahora?">
+              <ChoiceButton
+                active={entryMode === "onsite_unknown"}
+                onClick={() => setEntryMode("onsite_unknown")}
+              >
+                Estoy en una guardia
+              </ChoiceButton>
+              <ChoiceButton
+                active={entryMode === "needs_orientation"}
+                onClick={() => setEntryMode("needs_orientation")}
+              >
+                No sé a dónde ir
+              </ChoiceButton>
+            </QuestionBlock>
+          )}
+
+          {step === 2 && (
             <QuestionBlock title="¿Estás completando esto para vos o para otra persona?">
               <ChoiceButton
                 active={patientContext === "self"}
@@ -218,7 +278,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <QuestionBlock title="¿Qué te está pasando ahora?">
               <textarea
                 value={motivo}
@@ -229,7 +289,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <QuestionBlock title="¿Desde cuándo empezó?">
               {evolutionOptions.map((option) => (
                 <ChoiceButton
@@ -243,7 +303,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <QuestionBlock title="Del 1 al 10, ¿qué intensidad tiene?">
               <p className="text-5xl font-black text-[#52d6c4]">{intensidad}</p>
               <input
@@ -282,7 +342,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === totalQuestions + 1 && (
+          {step === summaryStep && (
             <div className="mt-6 space-y-4">
               <h1 className="text-3xl font-black">Resumen antes de crear el caso</h1>
               {estimatedPriority === "ROJO" && (
@@ -291,6 +351,12 @@ function PreTriageWizard() {
                   esperes respuesta por este sistema. Contactá emergencias o
                   dirigite a una guardia ahora.
                 </RedAlert>
+              )}
+              {orientationIntent && (
+                <div className="rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4 text-sm leading-6 text-slate-100">
+                  <p className="font-black text-[#9df3e9]">Orientación general</p>
+                  <p className="mt-2">{orientationMessage}</p>
+                </div>
               )}
               <SummaryItem label="Motivo" value={motivo} />
               <SummaryItem label="Tiempo de evolución" value={evolucion || "No informado"} />
@@ -327,7 +393,7 @@ function PreTriageWizard() {
               </button>
             )}
 
-            {step < totalQuestions + 1 ? (
+            {step < summaryStep ? (
               <button
                 type="button"
                 onClick={goNext}
@@ -350,6 +416,18 @@ function PreTriageWizard() {
       </section>
     </main>
   );
+}
+
+function getQuestionNumber(step: number, hasClinic: boolean) {
+  if (step === 1 && !hasClinic) {
+    return 1;
+  }
+
+  if (step >= 2 && step < summaryStep) {
+    return hasClinic ? step - 1 : step;
+  }
+
+  return null;
 }
 
 function QuestionBlock({

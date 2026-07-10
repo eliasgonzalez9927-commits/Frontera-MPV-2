@@ -1,4 +1,5 @@
 import type { Priority, TriageResult, TriageSource } from "@/lib/triage";
+import { getEntryModeLabel } from "@/lib/triageConversation";
 
 export type CaseStatus = "waiting" | "in_review" | "attended";
 
@@ -125,4 +126,10 @@ export function formatCaseTime(value: string) {
   const minutes = String(date.getMinutes()).padStart(2, "0");
 
   return `${hours}:${minutes} hs`;
+}
+
+export function getCaseOriginLabel(
+  caseData: Pick<TriageCase, "handover" | "sourceLabel">
+) {
+  return getEntryModeLabel(caseData.handover.entryMode) ?? caseData.sourceLabel;
 }

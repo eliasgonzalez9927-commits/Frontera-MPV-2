@@ -8,7 +8,11 @@ import {
   normalizeSource,
 } from "@/lib/triage";
 import { getActiveClinicBySlug } from "@/lib/clinics";
-import { isUsefulChiefComplaint } from "@/lib/triageConversation";
+import {
+  getOrientationMessage,
+  isUsefulChiefComplaint,
+  normalizeEntryMode,
+} from "@/lib/triageConversation";
 import { mapRowToTriageCase, type TriageCaseRow } from "@/lib/triageCases";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +47,9 @@ export async function POST(request: Request) {
     patientContext?: unknown;
     estimatedPriorityReason?: unknown;
     flowVersion?: unknown;
+    entryMode?: unknown;
+    orientationIntent?: unknown;
+    orientationMessage?: unknown;
     source?: unknown;
     clinic?: unknown;
     clinic_slug?: unknown;
@@ -70,7 +77,7 @@ export async function POST(request: Request) {
       : undefined;
   const flowVersion =
     typeof body.flowVersion === "string" ? body.flowVersion : undefined;
-  const source = normalizeSource(
+  const submittedSource = normalizeSource(
     typeof body.source === "string" ? body.source : undefined
   );
   const clinicSlug =
@@ -79,6 +86,14 @@ export async function POST(request: Request) {
       : typeof body.clinic_slug === "string"
         ? body.clinic_slug.trim()
         : "";
+  const source = clinicSlug ? submittedSource : "web";
+  const entryMode = normalizeEntryMode(body.entryMode, Boolean(clinicSlug));
+  const orientationIntent =
+    body.orientationIntent === true || entryMode === "needs_orientation";
+  const submittedOrientationMessage =
+    typeof body.orientationMessage === "string"
+      ? body.orientationMessage.trim()
+      : undefined;
 
   if (!motivo) {
     return NextResponse.json(
@@ -128,6 +143,9 @@ export async function POST(request: Request) {
     }
 
     const clinic = clinicResult?.ok ? clinicResult.clinic : null;
+    const orientationMessage = orientationIntent
+      ? submittedOrientationMessage || getOrientationMessage(result.priority)
+      : undefined;
 
     const { data, error } = await supabase
       .from("triage_cases")
@@ -154,6 +172,9 @@ export async function POST(request: Request) {
           redFlagAnswers,
           flowVersion,
           estimatedPriorityReason,
+          entryMode,
+          orientationIntent,
+          orientationMessage,
         },
         status: "waiting",
       })

@@ -1,6 +1,7 @@
 import type { Priority } from "@/lib/triage";
 
 export type PatientContext = "self" | "other";
+export type EntryMode = "clinic_qr" | "onsite_unknown" | "needs_orientation";
 export type RedFlagAnswerValue = "yes" | "no" | "unsure";
 
 export type RedFlagAnswer = {
@@ -9,6 +10,51 @@ export type RedFlagAnswer = {
   answer: RedFlagAnswerValue;
   signal: string;
 };
+
+export const entryModeLabels: Record<EntryMode, string> = {
+  clinic_qr: "Entrada QR de guardia",
+  onsite_unknown: "Entrada web / guardia sin clínica asociada",
+  needs_orientation: "Orientación general / No sé a dónde ir",
+};
+
+export function normalizeEntryMode(
+  value: unknown,
+  hasClinic: boolean
+): EntryMode {
+  if (hasClinic) {
+    return "clinic_qr";
+  }
+
+  if (value === "needs_orientation" || value === "onsite_unknown") {
+    return value;
+  }
+
+  return "onsite_unknown";
+}
+
+export function getEntryModeLabel(value?: string) {
+  if (
+    value === "clinic_qr" ||
+    value === "onsite_unknown" ||
+    value === "needs_orientation"
+  ) {
+    return entryModeLabels[value];
+  }
+
+  return undefined;
+}
+
+export function getOrientationMessage(priority: Priority) {
+  if (priority === "ROJO") {
+    return "Esto puede requerir atención inmediata. Contactá emergencias o dirigite a una guardia ahora. Frontera no envió una ambulancia.";
+  }
+
+  if (priority === "AMARILLO" || priority === "NARANJA") {
+    return "Por lo que contás, conviene que te evalúe un equipo médico hoy. En la próxima versión vamos a orientarte hacia una guardia compatible cercana.";
+  }
+
+  return "Podría resolverse con atención no prioritaria o consulta programada. Controlá evolución y volvé a evaluar si empeora.";
+}
 
 export const evolutionOptions = [
   "Menos de 1 hora",

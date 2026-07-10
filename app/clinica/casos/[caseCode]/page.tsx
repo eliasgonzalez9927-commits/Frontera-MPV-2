@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   formatCaseDate,
+  getCaseOriginLabel,
   statusLabels,
   type CaseStatus,
   type TriageCase,
@@ -41,6 +42,9 @@ function ClinicCaseDetailContent({ params }: PageProps) {
         redFlagAnswers?: RedFlagAnswer[];
         estimatedPriorityReason?: string;
         flowVersion?: string;
+        entryMode?: string;
+        orientationIntent?: boolean;
+        orientationMessage?: string;
       })
     | undefined;
 
@@ -264,7 +268,9 @@ function ClinicCaseDetailContent({ params }: PageProps) {
               </div>
               <div className="rounded-2xl bg-[#0d2530] p-4">
                 <p className="text-sm text-slate-400">Origen</p>
-                <p className="mt-1 font-semibold">{caseData.sourceLabel}</p>
+                <p className="mt-1 font-semibold">
+                  {getCaseOriginLabel(caseData)}
+                </p>
               </div>
               <div className="rounded-2xl bg-[#0d2530] p-4">
                 <p className="text-sm text-slate-400">Fecha y hora</p>
@@ -316,6 +322,17 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                     {conversationHandover.patientContext === "self"
                       ? "Para mí"
                       : "Para otra persona"}
+                  </p>
+                </div>
+              )}
+              {conversationHandover?.orientationIntent && (
+                <div className="rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4">
+                  <p className="text-sm text-[#9df3e9]">
+                    Orientación general
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {conversationHandover.orientationMessage ||
+                      "El paciente indicó que no sabía a dónde ir."}
                   </p>
                 </div>
               )}

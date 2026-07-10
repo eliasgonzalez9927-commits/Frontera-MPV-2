@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { TriageResult, Priority } from "@/lib/triage";
 import { getPriorityLabel } from "@/lib/triage";
+import { getOrientationMessage } from "@/lib/triageConversation";
+import { getCaseOriginLabel } from "@/lib/triageCases";
 
 const EMERGENCY_PHONE_HREF = "tel:107";
 
@@ -37,6 +39,11 @@ function formatCaseDate(value: string) {
 export default function ResultView({ caseData, notice }: ResultViewProps) {
   const createdAt = formatCaseDate(caseData.createdAt);
   const isRedProtocol = caseData.priority === "ROJO";
+  const isOrientationFlow = caseData.handover.entryMode === "needs_orientation";
+  const originLabel = getCaseOriginLabel(caseData);
+  const orientationMessage =
+    caseData.handover.orientationMessage ??
+    getOrientationMessage(caseData.priority);
 
   return (
     <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
@@ -81,6 +88,34 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
                 Ir a guardia ahora
               </button>
             </div>
+          </section>
+        )}
+
+        {isOrientationFlow && (
+          <section
+            className={`mt-8 rounded-[2rem] border p-6 ${
+              isRedProtocol
+                ? "border-red-300/40 bg-red-500/15"
+                : "border-[#52d6c4]/30 bg-[#52d6c4]/10"
+            }`}
+          >
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#9df3e9]">
+              Orientación general
+            </p>
+            <h2 className="mt-3 text-2xl font-black">
+              Prioridad estimada: {caseData.priority} ·{" "}
+              {getPriorityLabel(caseData.priority)}
+            </h2>
+            <p className="mt-3 text-base leading-7 text-slate-100">
+              {orientationMessage}
+            </p>
+            <p className="mt-4 text-sm font-bold text-slate-200">
+              Código de caso: {caseData.caseCode}
+            </p>
+            <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-200">
+              Frontera no diagnostica, no reemplaza una evaluación médica y no
+              envía ambulancias automáticamente.
+            </p>
           </section>
         )}
 
@@ -139,7 +174,7 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
 
                 <div className="rounded-2xl bg-[#0d2530] p-4">
                   <p className="text-sm text-slate-400">Origen</p>
-                  <p className="mt-1 font-semibold">{caseData.sourceLabel}</p>
+                  <p className="mt-1 font-semibold">{originLabel}</p>
                 </div>
 
                 <div className="rounded-2xl bg-[#0d2530] p-4">
