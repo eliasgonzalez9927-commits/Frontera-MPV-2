@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash, timingSafeEqual } from "crypto";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ClinicPublic = {
@@ -13,7 +14,8 @@ type ClinicRow = {
   id: string;
   name: string;
   slug: string;
-  access_token: string;
+  access_token: string | null;
+  access_token_hash: string | null;
   is_active: boolean;
 };
 
@@ -30,6 +32,21 @@ function mapClinic(row: ClinicRow): ClinicPublic {
   };
 }
 
+export function hashClinicToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function safeEqual(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 export async function getActiveClinicBySlug(
   slug: string
 ): Promise<ClinicValidation> {
@@ -42,7 +59,7 @@ export async function getActiveClinicBySlug(
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("clinics")
-    .select("id,name,slug,access_token,is_active")
+    .select("id,name,slug,is_active")
     .eq("slug", normalizedSlug)
     .maybeSingle<ClinicRow>();
 
@@ -73,10 +90,16 @@ export async function validateClinicTokenBySlug(
     return { ok: false, status: 401, message: "Token clinico invalido o ausente." };
   }
 
+  const providedToken = authorization.slice("Bearer ".length).trim();
+
+  if (!providedToken) {
+    return { ok: false, status: 401, message: "Token clinico invalido o ausente." };
+  }
+
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("clinics")
-    .select("id,name,slug,access_token,is_active")
+    .select("id,name,slug,access_token,access_token_hash,is_active")
     .eq("slug", normalizedSlug)
     .maybeSingle<ClinicRow>();
 
@@ -88,7 +111,14 @@ export async function validateClinicTokenBySlug(
     };
   }
 
-  if (authorization !== `Bearer ${data.access_token}`) {
+  const isHashValid = data.access_token_hash
+    ? safeEqual(hashClinicToken(providedToken), data.access_token_hash)
+    : false;
+  const isLegacyTokenValid = data.access_token
+    ? safeEqual(providedToken, data.access_token)
+    : false;
+
+  if (!isHashValid && !isLegacyTokenValid) {
     return { ok: false, status: 401, message: "Token clinico invalido o ausente." };
   }
 
