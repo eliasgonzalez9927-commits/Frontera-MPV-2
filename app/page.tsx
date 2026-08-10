@@ -67,6 +67,13 @@ export default function Home() {
               >
                 Acceso equipo clínico
               </Link>
+
+              <Link
+                href="/admin/clinicas"
+                className="px-2 py-3 text-sm font-semibold text-slate-400 underline-offset-4 transition hover:text-white hover:underline"
+              >
+                Administrar clínicas
+              </Link>
             </div>
 
             <p className="mt-5 max-w-xl text-sm leading-6 text-slate-400">

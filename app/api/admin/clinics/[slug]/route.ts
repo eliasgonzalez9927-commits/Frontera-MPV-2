@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { validateClinicAuthorization } from "@/lib/clinicAuth";
+import { validateAdminAuthorization } from "@/lib/adminAuth";
 import { hashClinicToken } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -39,7 +39,7 @@ function mapClinic(row: ClinicAdminRow) {
 }
 
 function validateAdmin(request: Request) {
-  const auth = validateClinicAuthorization(request);
+  const auth = validateAdminAuthorization(request);
 
   if (!auth.ok) {
     return NextResponse.json({ error: auth.message }, { status: auth.status });

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type AdminClinic = {
@@ -14,7 +15,12 @@ type AdminClinic = {
   hasLegacyToken: boolean;
 };
 
-const adminTokenStorageKey = "frontera-admin-token";
+type ClinicKit = {
+  clinic: AdminClinic;
+  token: string;
+};
+
+const adminSessionStorageKey = "frontera-admin-session";
 
 function buildSlug(value: string) {
   return value
@@ -26,28 +32,39 @@ function buildSlug(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
+function buildClinicLinks(origin: string, slug: string) {
+  const encodedSlug = encodeURIComponent(slug);
+
+  return {
+    qrUrl: `${origin}/clinica/qr?clinic=${encodedSlug}`,
+    dashboardUrl: `${origin}/clinica/dashboard?clinic=${encodedSlug}`,
+    intakeUrl: `${origin}/pretriaje?source=qr&clinic=${encodedSlug}`,
+  };
+}
+
 export default function AdminClinicsPage() {
-  const [adminToken, setAdminToken] = useState(() =>
+  const [adminSession, setAdminSession] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : sessionStorage.getItem(adminTokenStorageKey) ?? ""
+      : sessionStorage.getItem(adminSessionStorageKey) ?? ""
   );
-  const [tokenInput, setTokenInput] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [clinics, setClinics] = useState<AdminClinic[]>([]);
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [message, setMessage] = useState("");
-  const [oneTimeToken, setOneTimeToken] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
+  const [kit, setKit] = useState<ClinicKit | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const origin = useMemo(
     () => (typeof window === "undefined" ? "" : window.location.origin),
     []
   );
+  const previewSlug = buildSlug(name);
 
   const loadClinics = useCallback(async () => {
-    if (!adminToken) {
+    if (!adminSession) {
       return;
     }
 
@@ -57,7 +74,7 @@ export default function AdminClinicsPage() {
     try {
       const response = await fetch("/api/admin/clinics", {
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${adminSession}`,
         },
       });
       const payload = await response.json();
@@ -73,7 +90,7 @@ export default function AdminClinicsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [adminToken]);
+  }, [adminSession]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -83,39 +100,64 @@ export default function AdminClinicsPage() {
     return () => window.clearTimeout(timer);
   }, [loadClinics]);
 
-  function saveAdminToken(event: FormEvent<HTMLFormElement>) {
+  async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextToken = tokenInput.trim();
-    sessionStorage.setItem(adminTokenStorageKey, nextToken);
-    setAdminToken(nextToken);
-    setTokenInput("");
+    setMessage("");
+    setCopyMessage("");
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setMessage(payload.error ?? "No pudimos iniciar sesion.");
+        return;
+      }
+
+      sessionStorage.setItem(adminSessionStorageKey, payload.adminToken);
+      setAdminSession(payload.adminToken);
+      setPassword("");
+      setMessage("Sesion admin iniciada.");
+    } catch {
+      setMessage("No pudimos iniciar sesion.");
+    }
   }
 
-  function handleNameChange(value: string) {
-    setName(value);
-
-    if (!slug) {
-      setSlug(buildSlug(value));
-    }
+  function clearAdminSession() {
+    sessionStorage.removeItem(adminSessionStorageKey);
+    setAdminSession("");
+    setClinics([]);
+    setKit(null);
+    setMessage("");
+    setCopyMessage("");
   }
 
   async function createClinic(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
-    setOneTimeToken("");
     setCopyMessage("");
+    setKit(null);
 
     try {
       const response = await fetch("/api/admin/clinics", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${adminSession}`,
         },
         body: JSON.stringify({
           name,
-          slug,
+          slug: previewSlug,
         }),
       });
       const payload = await response.json();
@@ -125,11 +167,15 @@ export default function AdminClinicsPage() {
         return;
       }
 
+      const nextKit = {
+        clinic: payload.clinic,
+        token: payload.clinicAccessToken,
+      };
+
       setClinics((current) => [payload.clinic, ...current]);
-      setOneTimeToken(payload.clinicAccessToken);
+      setKit(nextKit);
       setName("");
-      setSlug("");
-      setMessage("Clinica creada.");
+      setMessage("Kit de prueba listo.");
     } catch {
       setMessage("No se pudo crear la clinica.");
     } finally {
@@ -142,8 +188,8 @@ export default function AdminClinicsPage() {
     body: { isActive?: boolean; regenerateToken?: boolean }
   ) {
     setMessage("");
-    setOneTimeToken("");
     setCopyMessage("");
+    setKit(null);
 
     try {
       const response = await fetch(
@@ -152,7 +198,7 @@ export default function AdminClinicsPage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${adminToken}`,
+            Authorization: `Bearer ${adminSession}`,
           },
           body: JSON.stringify(body),
         }
@@ -171,10 +217,17 @@ export default function AdminClinicsPage() {
       );
 
       if (payload.clinicAccessToken) {
-        setOneTimeToken(payload.clinicAccessToken);
+        setKit({
+          clinic: payload.clinic,
+          token: payload.clinicAccessToken,
+        });
       }
 
-      setMessage("Clinica actualizada.");
+      setMessage(
+        payload.clinicAccessToken
+          ? "Token regenerado. Guardalo ahora."
+          : "Clinica actualizada."
+      );
     } catch {
       setMessage("No se pudo actualizar la clinica.");
     }
@@ -189,6 +242,18 @@ export default function AdminClinicsPage() {
     }
   }
 
+  async function copyKit(nextKit: ClinicKit) {
+    const links = buildClinicLinks(origin, nextKit.clinic.slug);
+    const text = [
+      `Clinica: ${nextKit.clinic.name}`,
+      `QR imprimible: ${links.qrUrl}`,
+      `Dashboard: ${links.dashboardUrl}`,
+      `Token de acceso: ${nextKit.token}`,
+    ].join("\n");
+
+    await copyText(text, "Kit de prueba");
+  }
+
   return (
     <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
       <section className="mx-auto max-w-6xl">
@@ -196,76 +261,114 @@ export default function AdminClinicsPage() {
           ← Volver
         </Link>
 
-        <header className="mt-6">
-          <p className="text-sm font-semibold text-[#9df3e9]">
-            Administracion interna
-          </p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight">
-            Clinicas
-          </h1>
+        <header className="mt-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-semibold text-[#9df3e9]">
+              Administracion interna
+            </p>
+            <h1 className="mt-2 text-4xl font-black tracking-tight">
+              Clinicas
+            </h1>
+            <p className="mt-2 max-w-2xl text-slate-300">
+              Crea una clinica de prueba y obtene en un solo lugar el QR, el
+              dashboard y el token para el equipo.
+            </p>
+          </div>
+
+          {adminSession && (
+            <button
+              type="button"
+              onClick={clearAdminSession}
+              className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              Cerrar sesion
+            </button>
+          )}
         </header>
 
-        {!adminToken && (
+        {!adminSession && (
           <form
-            onSubmit={saveAdminToken}
-            className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            onSubmit={login}
+            className="mt-8 max-w-xl rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
           >
-            <label className="text-sm font-semibold text-slate-200">
-              Token interno de Frontera
+            <h2 className="text-xl font-black">Acceso admin</h2>
+            <label className="mt-5 block text-sm font-semibold text-slate-200">
+              Usuario
             </label>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(event) => setTokenInput(event.target.value)}
-                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
-              />
-              <button className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923]">
-                Entrar
-              </button>
-            </div>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+            />
+
+            <label className="mt-4 block text-sm font-semibold text-slate-200">
+              Contrasena
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+            />
+            <button className="mt-4 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]">
+              Entrar
+            </button>
           </form>
         )}
 
-        {adminToken && (
-          <div className="mt-8 grid gap-6 lg:grid-cols-[360px_1fr]">
-            <form
-              onSubmit={createClinic}
-              className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
-            >
-              <h2 className="text-xl font-black">Nueva clinica</h2>
-              <label className="mt-5 block text-sm font-semibold text-slate-200">
-                Nombre publico
-              </label>
-              <input
-                value={name}
-                onChange={(event) => handleNameChange(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
-                placeholder="Ej: Clinica San Martin"
-              />
-
-              <label className="mt-4 block text-sm font-semibold text-slate-200">
-                Slug
-              </label>
-              <input
-                value={slug}
-                onChange={(event) => setSlug(buildSlug(event.target.value))}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
-                placeholder="clinica-san-martin"
-              />
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+        {adminSession && (
+          <div className="mt-8 grid gap-6 lg:grid-cols-[380px_1fr]">
+            <div className="space-y-6">
+              <form
+                onSubmit={createClinic}
+                className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
               >
-                {isSaving ? "Creando..." : "Crear clinica"}
-              </button>
-            </form>
+                <h2 className="text-xl font-black">Crear clinica de prueba</h2>
+                <label className="mt-5 block text-sm font-semibold text-slate-200">
+                  Nombre de la clinica
+                </label>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                  placeholder="Ej: Clinica San Martin"
+                />
+                <p className="mt-3 break-all text-sm text-slate-400">
+                  Slug automatico:{" "}
+                  <span className="font-semibold text-slate-200">
+                    {previewSlug || "se genera con el nombre"}
+                  </span>
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={isSaving || !previewSlug}
+                  className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSaving ? "Creando kit..." : "Crear clinica y kit"}
+                </button>
+              </form>
+
+              {kit && (
+                <TestKit
+                  kit={kit}
+                  origin={origin}
+                  onCopyKit={() => copyKit(kit)}
+                  onCopyText={copyText}
+                />
+              )}
+            </div>
 
             <section className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <h2 className="text-xl font-black">Clinicas activas</h2>
+                <div>
+                  <h2 className="text-xl font-black">Clinicas creadas</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Accesos y estado operativo.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={loadClinics}
@@ -284,12 +387,7 @@ export default function AdminClinicsPage() {
 
               <div className="mt-5 space-y-4">
                 {clinics.map((clinic) => {
-                  const qrUrl = `${origin}/clinica/qr?clinic=${encodeURIComponent(
-                    clinic.slug
-                  )}`;
-                  const dashboardUrl = `${origin}/clinica/dashboard?clinic=${encodeURIComponent(
-                    clinic.slug
-                  )}`;
+                  const links = buildClinicLinks(origin, clinic.slug);
 
                   return (
                     <article
@@ -305,7 +403,7 @@ export default function AdminClinicsPage() {
                           <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
                             {clinic.isActive ? "Activa" : "Inactiva"} ·{" "}
                             {clinic.hasHashedToken
-                              ? "Token hasheado"
+                              ? "Token seguro"
                               : clinic.hasLegacyToken
                                 ? "Token legacy"
                                 : "Sin token"}
@@ -339,23 +437,25 @@ export default function AdminClinicsPage() {
                             }}
                             className="rounded-2xl border border-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/10"
                           >
-                            Regenerar token
+                            Nuevo token
                           </button>
                         </div>
                       </div>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <ActionLink
-                          label="QR"
-                          value={qrUrl}
-                          href={qrUrl}
-                          onCopy={() => copyText(qrUrl, "QR")}
+                          label="QR imprimible"
+                          value={links.qrUrl}
+                          href={links.qrUrl}
+                          onCopy={() => copyText(links.qrUrl, "QR")}
                         />
                         <ActionLink
                           label="Dashboard"
-                          value={dashboardUrl}
-                          href={dashboardUrl}
-                          onCopy={() => copyText(dashboardUrl, "Dashboard")}
+                          value={links.dashboardUrl}
+                          href={links.dashboardUrl}
+                          onCopy={() =>
+                            copyText(links.dashboardUrl, "Dashboard")
+                          }
                         />
                       </div>
                     </article>
@@ -366,23 +466,6 @@ export default function AdminClinicsPage() {
           </div>
         )}
 
-        {oneTimeToken && (
-          <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-5 text-yellow-50">
-            <p className="text-sm font-black">Token de clinica</p>
-            <p className="mt-2 break-all font-mono text-sm">{oneTimeToken}</p>
-            <p className="mt-2 text-sm">
-              Guardalo ahora. Frontera no vuelve a mostrar este token.
-            </p>
-            <button
-              type="button"
-              onClick={() => copyText(oneTimeToken, "Token")}
-              className="mt-4 rounded-2xl border border-yellow-100/30 px-4 py-2 text-sm font-bold transition hover:bg-yellow-100/10"
-            >
-              Copiar token
-            </button>
-          </div>
-        )}
-
         {(message || copyMessage) && (
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
             {message || copyMessage}
@@ -390,6 +473,95 @@ export default function AdminClinicsPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function TestKit({
+  kit,
+  origin,
+  onCopyKit,
+  onCopyText,
+}: {
+  kit: ClinicKit;
+  origin: string;
+  onCopyKit: () => void;
+  onCopyText: (value: string, label: string) => void;
+}) {
+  const links = buildClinicLinks(origin, kit.clinic.slug);
+
+  return (
+    <section className="rounded-[1.5rem] border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-5">
+      <p className="text-sm font-black uppercase tracking-[0.16em] text-[#9df3e9]">
+        Kit de prueba listo
+      </p>
+      <h2 className="mt-2 text-2xl font-black">{kit.clinic.name}</h2>
+
+      <div className="mt-5 rounded-2xl bg-white p-4 text-center text-[#071923]">
+        <QRCodeSVG
+          value={links.intakeUrl}
+          size={220}
+          level="M"
+          marginSize={4}
+          title={`QR de pre-triaje ${kit.clinic.name}`}
+        />
+        <p className="mt-3 break-all text-xs font-semibold">
+          {links.intakeUrl}
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <KitLine
+          label="QR imprimible"
+          value={links.qrUrl}
+          onCopy={() => onCopyText(links.qrUrl, "QR")}
+        />
+        <KitLine
+          label="Dashboard"
+          value={links.dashboardUrl}
+          onCopy={() => onCopyText(links.dashboardUrl, "Dashboard")}
+        />
+        <KitLine
+          label="Token de clinica"
+          value={kit.token}
+          onCopy={() => onCopyText(kit.token, "Token")}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={onCopyKit}
+        className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]"
+      >
+        Copiar kit completo
+      </button>
+      <p className="mt-3 text-sm text-slate-300">
+        Guardá el token ahora. Frontera no vuelve a mostrarlo.
+      </p>
+    </section>
+  );
+}
+
+function KitLine({
+  label,
+  value,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#0d2530] p-3">
+      <p className="text-sm font-semibold text-slate-300">{label}</p>
+      <p className="mt-1 break-all text-xs text-slate-400">{value}</p>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="mt-3 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+      >
+        Copiar
+      </button>
+    </div>
   );
 }
 
