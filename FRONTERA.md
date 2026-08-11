@@ -148,7 +148,23 @@ Todavía no hay: bot conversacional completo por WhatsApp, IA, geolocalización,
 
 **Nota sobre visión (ver Sección 3)**: este piloto conecta WhatsApp como canal de entrada liviano (solo envía el link de pre-triaje) — es infraestructura que sirve tanto a la Visión B (bot que gestiona trámites sobre obras sociales existentes) como a un canal B2C independiente del pre-triaje de guardia. Todavía no resuelve la decisión de visión, pero es el tipo de pieza reutilizable en cualquiera de los dos caminos.
 
-## 9. Próximos pasos sugeridos
+## 9. Agente conversacional de triage por WhatsApp (11 de agosto de 2026)
+
+Se recuperó el estilo de triage conversacional de la versión Lovable (`frontera-ai-triage.lovable.app` — chat libre, preguntas de seguimiento dinámicas, clasificación MTS, resumen estructurado) y se lo llevó al canal WhatsApp real usando el agente de OpenClaw ya conectado.
+
+**Arquitectura**: se creó un agente aislado de OpenClaw llamado `triage` (identidad "🩺 Frontera"), separado del agente `main` genérico, con su propio workspace en `~/.openclaw/workspace-triage`:
+
+* `SOUL.md` — protocolo de triage: una pregunta a la vez, detección de señales rojas con escalamiento inmediato a ROJO, clasificación MTS (🔴🟠🟡🟢), estilo WhatsApp (sin headers, bold/CAPS), disclaimer obligatorio, y una regla de privacidad explícita (cada sesión de WhatsApp es un paciente distinto y anónimo — sin memoria cruzada entre conversaciones).
+* `TOOLS.md` — contrato exacto del endpoint `POST /api/triage-cases`: el agente conversa y extrae datos (motivo, evolución, síntomas, señales rojas detectadas), pero **la clasificación de prioridad la sigue calculando el servidor** (`lib/triage.ts`), no el LLM — evita duplicar lógica clínica en dos lugares.
+* Bindeado a `whatsapp:frontera` (`openclaw agents bind --agent triage --bind whatsapp:frontera`) — todo mensaje entrante al +5492617261009 lo maneja este agente.
+
+**Bug encontrado y corregido en el camino**: `app/api/triage-cases/route.ts` ignoraba el `source` recibido (`"web" | "qr" | "whatsapp"`) salvo que el caso estuviera atado a una clínica (`clinic_slug`) — cualquier caso de WhatsApp sin clínica asociada quedaba mal etiquetado como `"web"`. Se corrigió (`const source = submittedSource;`), commiteado en `b1d308f`.
+
+**Probado**: turno de agente simulado end-to-end (`openclaw agent --agent triage --message ...`, sin `--deliver`) — el agente hizo la pregunta de seguimiento correcta, clasificó AMARILLO, llamó al endpoint real y generó el caso `FR-2CA0FAEC781741D9`, verificado en Supabase vía API. **Todavía no probado con un mensaje real entrante por WhatsApp** (el primer intento del equipo falló porque no había ninguna auth de modelo configurada en OpenClaw — se resolvió con `openclaw models auth login --provider openai`). Bloqueante conocido: mientras el fix del bug de `source` no esté deployado (pendiente de `git push`), los casos reales por WhatsApp van a seguir etiquetándose como "web" en producción.
+
+**Próximo paso obligado**: mandar un mensaje real al +5492617261009 y confirmar que (a) el bot responde solo, sin intervención, y (b) el caso aparece en `/admin/clinicas` / dashboard con `source: whatsapp` una vez deployado el fix.
+
+## 10. Próximos pasos sugeridos
 
 1. Documentar el avance de Codex en la sección 7 (o generar un CLAUDE.md del repo con ese contexto). ✅ hecho arriba a partir de lo relevado en el repo — falta que Elías confirme/corrija con lo que sabe de Codex que no esté en el código actual.
 2. Definir la visión del MVP (A, B o B-como-puente-hacia-A) antes de seguir construyendo features.
@@ -158,5 +174,7 @@ Todavía no hay: bot conversacional completo por WhatsApp, IA, geolocalización,
 6. Mantener el ritmo en paralelo a Pinta: sesiones consistentes, sin sprint suicida.
 7. Prueba completa con clínica: crear clínica de prueba en `/admin/clinicas` → copiar kit completo → mostrar/escanear QR → completar pre-triaje → ver caso en dashboard clínico → probar entrada WhatsApp con link.
 8. Rotar la contraseña admin temporal (`frontera-demo-2026`) después de la demo.
+9. Pushear el fix de `source` (commit `b1d308f`) y confirmar deploy en Vercel.
+10. Mandar un mensaje real al +5492617261009 para probar el agente `triage` en producción (ver Sección 9) y confirmar que el caso queda con `source: whatsapp`.
 
 Este documento consolida todo el historial de Frontera en conversaciones con Claude (junio 2026 en adelante) más el contexto del proyecto original de 2021/2022. Actualizarlo a medida que el proyecto avance — es la fuente de verdad.
