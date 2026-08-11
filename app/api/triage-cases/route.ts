@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       : typeof body.clinic_slug === "string"
         ? body.clinic_slug.trim()
         : "";
-  const source = clinicSlug ? submittedSource : "web";
+  const source = submittedSource;
   const entryMode = normalizeEntryMode(body.entryMode, Boolean(clinicSlug));
   const orientationIntent =
     body.orientationIntent === true || entryMode === "needs_orientation";
