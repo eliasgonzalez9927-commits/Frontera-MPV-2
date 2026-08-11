@@ -103,19 +103,61 @@ function normalizeText(value: string) {
     .replace(/\p{Diacritic}/gu, "");
 }
 
+const NEGATION_WORDS = [
+  "sin",
+  "no",
+  "nunca",
+  "jamas",
+  "niega",
+  "ningun",
+  "ninguna",
+  "tampoco",
+];
+
+// Splits on sentence/clause boundaries so a negation in one clause ("sin
+// fiebre") never leaks into an unrelated later clause that happens to share
+// a keyword.
+function splitIntoClauses(text: string) {
+  return text.split(/[.,;\n]+|\by\b|\bpero\b/g);
+}
+
+function clauseMatchesUnnegated(clause: string, keyword: string) {
+  const index = clause.indexOf(keyword);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const preceding = clause.slice(0, index);
+  const isNegated = NEGATION_WORDS.some((word) =>
+    new RegExp(`(^|\\s)${word}(\\s|$)`).test(preceding)
+  );
+
+  return !isNegated;
+}
+
+// Plain substring matching can't tell "dolor de pecho" from "sin dolor de
+// pecho" — this checks each clause individually so a negated mention never
+// counts as a positive symptom/red flag.
+function keywordAppearsUnnegated(text: string, keyword: string) {
+  return splitIntoClauses(text).some((clause) =>
+    clauseMatchesUnnegated(clause, keyword)
+  );
+}
+
 function detectRedSignals(text: string, symptoms: string[]) {
-  const normalized = normalizeText(`${text} ${symptoms.join(" ")}`);
+  const normalized = normalizeText(`${text} . ${symptoms.join(" . ")}`);
 
   return RED_SIGNAL_KEYWORDS.filter((keyword) =>
-    normalized.includes(normalizeText(keyword))
+    keywordAppearsUnnegated(normalized, normalizeText(keyword))
   );
 }
 
 function hasWarningKeyword(text: string, symptoms: string[]) {
-  const normalized = normalizeText(`${text} ${symptoms.join(" ")}`);
+  const normalized = normalizeText(`${text} . ${symptoms.join(" . ")}`);
 
   return WARNING_KEYWORDS.some((keyword) =>
-    normalized.includes(normalizeText(keyword))
+    keywordAppearsUnnegated(normalized, normalizeText(keyword))
   );
 }
 
