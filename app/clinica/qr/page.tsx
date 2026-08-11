@@ -17,6 +17,7 @@ function ClinicQrContent() {
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [error, setError] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const visibleError = clinicSlug ? error : "Falta indicar la clínica.";
 
@@ -31,6 +32,11 @@ function ClinicQrContent() {
         clinicSlug
       )}`;
       setTargetUrl(nextTargetUrl);
+
+      const whatsappMessage = `[FRONTERA-CLINIC:${clinicSlug}] Hola, quiero hacer mi pre-triaje`;
+      setWhatsappUrl(
+        `https://wa.me/5492617261009?text=${encodeURIComponent(whatsappMessage)}`
+      );
 
       fetch(`/api/clinics/${clinicSlug}`)
         .then(async (response) => {
@@ -66,12 +72,12 @@ function ClinicQrContent() {
   }, [clinicSlug]);
 
   async function copyLink() {
-    if (!targetUrl) {
+    if (!whatsappUrl) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(targetUrl);
+      await navigator.clipboard.writeText(whatsappUrl);
       setCopyMessage("Link copiado.");
     } catch {
       setCopyMessage("No se pudo copiar el link.");
@@ -106,21 +112,21 @@ function ClinicQrContent() {
               </h1>
               <p className="mt-4 text-slate-300">
                 Escaneá este QR al llegar a urgencias para iniciar tu
-                pre-triaje.
+                pre-triaje por WhatsApp, hablando con Frontera.
               </p>
 
               <div className="mt-8 flex flex-col items-center gap-5 rounded-[1.5rem] bg-white p-6 text-[#071923]">
-                {targetUrl && (
+                {whatsappUrl && (
                   <QRCodeSVG
-                    value={targetUrl}
+                    value={whatsappUrl}
                     size={280}
                     level="M"
                     marginSize={4}
-                    title={`QR de pre-triaje ${clinic?.name ?? clinicSlug}`}
+                    title={`QR de pre-triaje por WhatsApp ${clinic?.name ?? clinicSlug}`}
                   />
                 )}
                 <p className="break-all text-center text-sm font-semibold">
-                  {targetUrl}
+                  {whatsappUrl}
                 </p>
               </div>
 
@@ -130,7 +136,7 @@ function ClinicQrContent() {
                   onClick={copyLink}
                   className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
                 >
-                  Copiar link
+                  Copiar link de WhatsApp
                 </button>
                 <button
                   type="button"
@@ -144,6 +150,13 @@ function ClinicQrContent() {
               {copyMessage && (
                 <p className="mt-3 text-sm text-slate-300">{copyMessage}</p>
               )}
+
+              <details className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
+                <summary className="cursor-pointer font-semibold text-white">
+                  Alternativa: pre-triaje por web (sin WhatsApp)
+                </summary>
+                <p className="mt-3 break-all">{targetUrl}</p>
+              </details>
             </div>
           )}
         </div>
