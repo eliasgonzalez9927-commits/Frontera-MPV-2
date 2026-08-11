@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     intensidad?: unknown;
     sintomas?: unknown;
     redFlags?: unknown;
+    urgentSignals?: unknown;
     redFlagAnswers?: unknown;
     patientContext?: unknown;
     estimatedPriorityReason?: unknown;
@@ -65,6 +66,11 @@ export async function POST(request: Request) {
     : [];
   const redFlags = Array.isArray(body.redFlags)
     ? body.redFlags.filter((item): item is string => typeof item === "string")
+    : [];
+  const urgentSignals = Array.isArray(body.urgentSignals)
+    ? body.urgentSignals.filter(
+        (item): item is string => typeof item === "string"
+      )
     : [];
   const redFlagAnswers = Array.isArray(body.redFlagAnswers)
     ? body.redFlagAnswers
@@ -125,6 +131,7 @@ export async function POST(request: Request) {
     intensidad,
     sintomas,
     redFlags,
+    urgentSignals,
     source,
   });
   const caseCode = createCaseCode();
