@@ -31,7 +31,7 @@ function safeEqual(left: string, right: string) {
 }
 
 function getAdminSecret() {
-  return process.env.ADMIN_SESSION_SECRET || process.env.CLINIC_ACCESS_TOKEN || "";
+  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
 }
 
 function sign(payload: string) {
@@ -45,16 +45,12 @@ function sign(payload: string) {
 }
 
 export function isAdminLoginConfigured() {
-  return Boolean(
-    (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) ||
-      process.env.CLINIC_ACCESS_TOKEN
-  );
+  return Boolean(process.env.ADMIN_PASSWORD);
 }
 
 export function validateAdminCredentials(username: string, password: string) {
   const configuredUsername = process.env.ADMIN_USERNAME || "admin";
-  const configuredPassword =
-    process.env.ADMIN_PASSWORD || process.env.CLINIC_ACCESS_TOKEN || "";
+  const configuredPassword = process.env.ADMIN_PASSWORD || "";
 
   if (!configuredPassword) {
     return false;
@@ -87,7 +83,6 @@ export function createAdminSessionToken(username: string) {
 }
 
 export function validateAdminAuthorization(request: Request) {
-  const configuredToken = process.env.CLINIC_ACCESS_TOKEN;
   const authorization = request.headers.get("authorization");
 
   if (!authorization?.startsWith("Bearer ")) {
@@ -99,11 +94,6 @@ export function validateAdminAuthorization(request: Request) {
   }
 
   const providedToken = authorization.slice("Bearer ".length).trim();
-
-  if (configuredToken && safeEqual(providedToken, configuredToken)) {
-    return { ok: true, status: 200, message: "OK" };
-  }
-
   const [payload, signature] = providedToken.split(".");
 
   if (!payload || !signature) {

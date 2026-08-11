@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { validateClinicAuthorization } from "@/lib/clinicAuth";
 import { validateClinicTokenBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
@@ -29,17 +28,15 @@ async function getCase(caseCode: string, clinicId?: string) {
 async function validateClinicScope(request: Request) {
   const clinicSlug = new URL(request.url).searchParams.get("clinic")?.trim();
 
-  if (clinicSlug) {
-    return validateClinicTokenBySlug(clinicSlug, request);
+  if (!clinicSlug) {
+    return {
+      ok: false as const,
+      status: 400,
+      message: "Falta indicar la clinica.",
+    };
   }
 
-  const auth = validateClinicAuthorization(request);
-
-  if (!auth.ok) {
-    return { ok: false as const, status: auth.status, message: auth.message };
-  }
-
-  return { ok: true as const, clinic: undefined };
+  return validateClinicTokenBySlug(clinicSlug, request);
 }
 
 export async function GET(
