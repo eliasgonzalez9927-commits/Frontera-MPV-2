@@ -4,6 +4,7 @@ export type TriageSource = "web" | "qr" | "whatsapp";
 export type TriageInput = {
   motivo: string;
   nombre?: string;
+  obraSocial?: string;
   intensidad?: number;
   evolucion?: string;
   sintomas?: string[];
@@ -29,6 +30,7 @@ export type TriageResult = {
     senalesUrgentes?: string[];
     evolucion?: string;
     sintomasAdicionales: string[];
+    obraSocial?: string;
     patientContext?: string;
     redFlagAnswers?: unknown;
     flowVersion?: string;
@@ -233,6 +235,7 @@ export function analyzeTriage(input: TriageInput): TriageResult {
       senalesUrgentes: urgentSignals,
       evolucion: input.evolucion,
       sintomasAdicionales: symptoms,
+      obraSocial: input.obraSocial?.trim() || undefined,
     },
     createdAt: new Date().toISOString(),
   };

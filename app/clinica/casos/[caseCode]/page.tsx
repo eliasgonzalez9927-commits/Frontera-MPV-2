@@ -43,6 +43,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
         estimatedPriorityReason?: string;
         flowVersion?: string;
         entryMode?: string;
+        obraSocial?: string;
         orientationIntent?: boolean;
         orientationMessage?: string;
       })
@@ -212,9 +213,12 @@ function ClinicCaseDetailContent({ params }: PageProps) {
           <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/5 p-6">
             <div className="flex flex-col justify-between gap-4 md:flex-row">
               <div>
-                <p className="text-sm text-slate-400">Código de caso</p>
+                <p className="text-sm text-slate-400">Paciente</p>
                 <p className="mt-1 text-2xl font-black">
-                  {caseData.caseCode}
+                  {caseData.patientLabel}
+                </p>
+                <p className="mt-2 text-sm text-slate-400">
+                  Código de caso: <span className="font-semibold text-white">{caseData.caseCode}</span>
                 </p>
                 {caseData.clinicName && (
                   <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
@@ -285,6 +289,12 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                 <p className="text-sm text-slate-400">Motivo</p>
                 <p className="mt-1 font-semibold">
                   {caseData.chiefComplaint}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#0d2530] p-4">
+                <p className="text-sm text-slate-400">Obra social / prepaga</p>
+                <p className="mt-1 font-semibold">
+                  {conversationHandover?.obraSocial || "No informado"}
                 </p>
               </div>
               <div className="rounded-2xl bg-[#0d2530] p-4">
