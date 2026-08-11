@@ -164,7 +164,26 @@ Se recuperó el estilo de triage conversacional de la versión Lovable (`fronter
 
 **Próximo paso obligado**: mandar un mensaje real al +5492617261009 y confirmar que (a) el bot responde solo, sin intervención, y (b) el caso aparece en `/admin/clinicas` / dashboard con `source: whatsapp` una vez deployado el fix.
 
-## 10. Próximos pasos sugeridos
+## 10. Pruebas en vivo y correcciones (11 de agosto de 2026, sesión larga)
+
+Con el número real (+5492617261009) ya funcionando y probado con casos reales (dolor de cabeza tipo ACV → ROJO correcto, herida en la rodilla con foto), aparecieron varios problemas de fondo. Todos corregidos en la misma sesión:
+
+1. **Pairing de OpenClaw bloqueaba pacientes desconocidos.** Por default, cualquier número nuevo quedaba gateado pidiendo aprobación manual (`openclaw pairing approve`) — inviable para un bot público. Fix: `channels.whatsapp.accounts.frontera.dmPolicy = "open"` + `allowFrom = ["*"]`.
+2. **Todas las conversaciones compartían una sola sesión (`dmScope: "main"`).** Cualquier paciente que escribiera caía en el mismo contexto que el anterior — un riesgo real de mezclar datos de pacientes distintos. Fix: `bindings[0].session.dmScope = "per-peer"`, cada número ahora tiene su propia sesión aislada.
+3. **Reset manual para seguir probando**: los comandos nativos `/new` y `/reset` de OpenClaw, mandados directo por WhatsApp, cortan la sesión y arrancan de cero — no hace falta terminal.
+4. **Latencia alta**: el agente `triage` traía cargado el catálogo completo de 191 skills de marketing/growth de OpenClaw (nada que ver con el triage), sumando ~18.000 caracteres al prompt en cada turno. Se le sacó (`agents.list[1].skills: []`).
+5. **Fotos y visión**: confirmado que el agente SÍ puede ver fotos que manda el paciente (probado con una herida en la rodilla) — el modelo la analizó correctamente ("herida abierta, bordes separados, necesita evaluación presencial"). Audio/notas de voz: todavía sin probar.
+6. **Bug de clasificación (AMARILLO en el chat, VERDE guardado)**: la regla real de `lib/triage.ts` es más angosta de lo que parece — `redFlags` solo puede producir ROJO, nunca AMARILLO; para AMARILLO hacía falta `intensidad >= 7` o una palabra clave fija (fiebre, vómito, sangrado, "dolor fuerte", mareo, deshidratación). Un hallazgo clínico que viene de una **foto** (como una herida) no encajaba en ninguna de las dos vías y cayó en VERDE por default, aunque el bot ya le había dicho AMARILLO al paciente en el chat. Fix real (no solo de prompt): se agregó un campo nuevo `urgentSignals` a `lib/triage.ts` y al endpoint — paralelo a `redFlags` pero mapeado a AMARILLO — para que el agente pueda declarar explícitamente "esto amerita atención hoy" sin tener que inventar una intensidad de dolor falsa. Commit `485ed3b`.
+7. **"Andá a una guardia" no tiene sentido si ya estás en la clínica.** Se agregó un modo "en sitio": el QR de cada clínica ahora genera un link de WhatsApp con tag `[FRONTERA-CLINIC:<slug>]` pre-cargado (`app/clinica/qr/page.tsx`, commit `d3cbe37`). Cuando el bot detecta ese tag, no manda a ningún lado y en vez de eso tagea el caso con esa clínica.
+8. **"Avisá al personal" le devolvía al paciente el trabajo que Frontera existe para hacer.** Corregido en dos frentes: (a) `SOUL.md` ya no le pide al paciente que avise a nadie — dice "ya avisé al equipo, tu caso quedó registrado"; (b) el dashboard clínico (`/clinica/dashboard`) solo cargaba los casos una vez al abrir — ahora hace polling cada 15s y suena una alerta cuando entra un caso nuevo, para que el personal se entere sin hacer nada (commit `589bed4`).
+
+**Gaps que quedan pendientes, identificados pero no resueltos todavía**:
+- El caso nunca pide el nombre del paciente (`patientLabel` queda fijo en "Paciente sin identificar") — con varias personas en la sala de espera no hay forma de saber cuál es cuál salvo mostrar el código de caso.
+- `NARANJA` y `AZUL` existen en el modelo de datos pero el clasificador de `lib/triage.ts` nunca los produce — todo lo "muy urgente pero no ROJO" hoy cae en AMARILLO.
+- Alcance de primeros auxilios: se decidió permitir que el bot dé indicaciones de seguridad inmediata genéricas (ej. "hacé presión para frenar el sangrado") pero nunca medicación/dosis — está en `SOUL.md`, vale la pena revisarlo con criterio médico real antes de un despliegue serio.
+- Audio (notas de voz) sin probar todavía.
+
+## 11. Próximos pasos sugeridos
 
 1. Documentar el avance de Codex en la sección 7 (o generar un CLAUDE.md del repo con ese contexto). ✅ hecho arriba a partir de lo relevado en el repo — falta que Elías confirme/corrija con lo que sabe de Codex que no esté en el código actual.
 2. Definir la visión del MVP (A, B o B-como-puente-hacia-A) antes de seguir construyendo features.
@@ -176,5 +195,9 @@ Se recuperó el estilo de triage conversacional de la versión Lovable (`fronter
 8. Rotar la contraseña admin temporal (`frontera-demo-2026`) después de la demo.
 9. Pushear el fix de `source` (commit `b1d308f`) y confirmar deploy en Vercel.
 10. Mandar un mensaje real al +5492617261009 para probar el agente `triage` en producción (ver Sección 9) y confirmar que el caso queda con `source: whatsapp`.
+11. Agregar captura del nombre del paciente al flujo y mostrarlo en el dashboard clínico (ver Sección 10, gap pendiente).
+12. Revisar con criterio médico real el alcance de primeros auxilios que el bot puede sugerir (hoy: solo seguridad inmediata genérica, nunca medicación).
+13. Probar notas de voz/audio por WhatsApp — todavía sin validar.
+14. Decidir si vale la pena habilitar `NARANJA` como nivel intermedio real en `lib/triage.ts`, o si AMARILLO alcanza para el MVP.
 
 Este documento consolida todo el historial de Frontera en conversaciones con Claude (junio 2026 en adelante) más el contexto del proyecto original de 2021/2022. Actualizarlo a medida que el proyecto avance — es la fuente de verdad.
