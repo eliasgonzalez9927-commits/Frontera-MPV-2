@@ -39,6 +39,7 @@ export async function POST(request: Request) {
 
   const body = payload as {
     motivo?: unknown;
+    nombre?: unknown;
     evolucion?: unknown;
     intensidad?: unknown;
     sintomas?: unknown;
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
   };
 
   const motivo = typeof body.motivo === "string" ? body.motivo.trim() : "";
+  const nombre = typeof body.nombre === "string" ? body.nombre.trim() : "";
   const evolucion =
     typeof body.evolucion === "string" ? body.evolucion.trim() : "";
   const intensidad =
@@ -127,6 +129,7 @@ export async function POST(request: Request) {
 
   const result = analyzeTriage({
     motivo,
+    nombre,
     evolucion,
     intensidad,
     sintomas,

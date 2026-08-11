@@ -3,6 +3,7 @@ export type TriageSource = "web" | "qr" | "whatsapp";
 
 export type TriageInput = {
   motivo: string;
+  nombre?: string;
   intensidad?: number;
   evolucion?: string;
   sintomas?: string[];
@@ -201,6 +202,7 @@ export function analyzeTriage(input: TriageInput): TriageResult {
   const urgentSignals = Array.from(new Set(input.urgentSignals ?? []));
   const source = normalizeSource(input.source);
   const caseCode = `FR-${Date.now()}`;
+  const nombre = input.nombre?.trim();
 
   let priority: Priority = "VERDE";
 
@@ -217,7 +219,7 @@ export function analyzeTriage(input: TriageInput): TriageResult {
   return {
     id: caseCode,
     caseCode,
-    patientLabel: "Paciente sin identificar",
+    patientLabel: nombre || "Paciente sin identificar",
     source,
     sourceLabel: getSourceLabel(source),
     priority,
