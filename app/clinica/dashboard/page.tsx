@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -104,6 +105,32 @@ function ClinicDashboardContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [usingDemo, setUsingDemo] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<CaseFilter>("all");
+  const knownCaseCodesRef = useRef<Set<string> | null>(null);
+
+  const playNewCaseAlert = useCallback(() => {
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioContextClass) {
+        return;
+      }
+      const ctx = new AudioContextClass();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.4);
+    } catch {
+      // Audio alert is a nice-to-have; ignore if the browser blocks it.
+    }
+  }, []);
 
   useEffect(() => {
     if (!clinicSlug) {
@@ -160,13 +187,26 @@ function ClinicDashboardContent() {
         return;
       }
 
-      setCases(sortTriageCases(payload.cases));
+      const nextCases: TriageCase[] = payload.cases;
+      const nextCodes = new Set(nextCases.map((item) => item.caseCode));
+
+      if (knownCaseCodesRef.current) {
+        const hasNewCase = nextCases.some(
+          (item) => !knownCaseCodesRef.current!.has(item.caseCode)
+        );
+        if (hasNewCase) {
+          playNewCaseAlert();
+        }
+      }
+      knownCaseCodesRef.current = nextCodes;
+
+      setCases(sortTriageCases(nextCases));
     } catch {
       setMessage("No se pudieron cargar los casos.");
     } finally {
       setIsLoading(false);
     }
-  }, [clinicSlug, token]);
+  }, [clinicSlug, token, playNewCaseAlert]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -175,6 +215,18 @@ function ClinicDashboardContent() {
 
     return () => window.clearTimeout(timer);
   }, [loadCases]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      loadCases();
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [token, loadCases]);
 
   const counters = useMemo(
     () => ({
