@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { buildClinicWhatsappUrl } from "@/lib/whatsappLink";
 
 type AdminClinic = {
   id: string;
@@ -13,11 +14,6 @@ type AdminClinic = {
   updatedAt: string;
   hasHashedToken: boolean;
   hasLegacyToken: boolean;
-};
-
-type ClinicKit = {
-  clinic: AdminClinic;
-  token: string;
 };
 
 const adminSessionStorageKey = "frontera-admin-session";
@@ -36,9 +32,9 @@ function buildClinicLinks(origin: string, slug: string) {
   const encodedSlug = encodeURIComponent(slug);
 
   return {
-    qrUrl: `${origin}/clinica/qr?clinic=${encodedSlug}`,
+    qrPageUrl: `${origin}/clinica/qr?clinic=${encodedSlug}`,
     dashboardUrl: `${origin}/clinica/dashboard?clinic=${encodedSlug}`,
-    intakeUrl: `${origin}/pretriaje?source=qr&clinic=${encodedSlug}`,
+    whatsappUrl: buildClinicWhatsappUrl(slug),
   };
 }
 
@@ -54,7 +50,7 @@ export default function AdminClinicsPage() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
-  const [kit, setKit] = useState<ClinicKit | null>(null);
+  const [freshTokens, setFreshTokens] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const origin = useMemo(
@@ -136,7 +132,7 @@ export default function AdminClinicsPage() {
     sessionStorage.removeItem(adminSessionStorageKey);
     setAdminSession("");
     setClinics([]);
-    setKit(null);
+    setFreshTokens({});
     setMessage("");
     setCopyMessage("");
   }
@@ -146,7 +142,6 @@ export default function AdminClinicsPage() {
     setIsSaving(true);
     setMessage("");
     setCopyMessage("");
-    setKit(null);
 
     try {
       const response = await fetch("/api/admin/clinics", {
@@ -167,15 +162,13 @@ export default function AdminClinicsPage() {
         return;
       }
 
-      const nextKit = {
-        clinic: payload.clinic,
-        token: payload.clinicAccessToken,
-      };
-
       setClinics((current) => [payload.clinic, ...current]);
-      setKit(nextKit);
+      setFreshTokens((current) => ({
+        ...current,
+        [payload.clinic.slug]: payload.clinicAccessToken,
+      }));
       setName("");
-      setMessage("Kit de prueba listo.");
+      setMessage(`Clínica "${payload.clinic.name}" creada.`);
     } catch {
       setMessage("No se pudo crear la clinica.");
     } finally {
@@ -189,7 +182,6 @@ export default function AdminClinicsPage() {
   ) {
     setMessage("");
     setCopyMessage("");
-    setKit(null);
 
     try {
       const response = await fetch(
@@ -217,10 +209,10 @@ export default function AdminClinicsPage() {
       );
 
       if (payload.clinicAccessToken) {
-        setKit({
-          clinic: payload.clinic,
-          token: payload.clinicAccessToken,
-        });
+        setFreshTokens((current) => ({
+          ...current,
+          [payload.clinic.slug]: payload.clinicAccessToken,
+        }));
       }
 
       setMessage(
@@ -242,16 +234,20 @@ export default function AdminClinicsPage() {
     }
   }
 
-  async function copyKit(nextKit: ClinicKit) {
-    const links = buildClinicLinks(origin, nextKit.clinic.slug);
-    const text = [
-      `Clinica: ${nextKit.clinic.name}`,
-      `QR imprimible: ${links.qrUrl}`,
+  async function copyKit(clinic: AdminClinic) {
+    const links = buildClinicLinks(origin, clinic.slug);
+    const token = freshTokens[clinic.slug];
+    const lines = [
+      `Clinica: ${clinic.name}`,
+      `QR / link de WhatsApp: ${links.whatsappUrl}`,
       `Dashboard: ${links.dashboardUrl}`,
-      `Token de acceso: ${nextKit.token}`,
-    ].join("\n");
+    ];
 
-    await copyText(text, "Kit de prueba");
+    if (token) {
+      lines.push(`Token de acceso: ${token}`);
+    }
+
+    await copyText(lines.join("\n"), "Kit");
   }
 
   return (
@@ -270,8 +266,8 @@ export default function AdminClinicsPage() {
               Clinicas
             </h1>
             <p className="mt-2 max-w-2xl text-slate-300">
-              Crea una clinica de prueba y obtene en un solo lugar el QR, el
-              dashboard y el token para el equipo.
+              Cada clínica tiene una sola tarjeta: QR de WhatsApp, dashboard y
+              token, siempre en el mismo lugar.
             </p>
           </div>
 
@@ -320,53 +316,42 @@ export default function AdminClinicsPage() {
 
         {adminSession && (
           <div className="mt-8 grid gap-6 lg:grid-cols-[380px_1fr]">
-            <div className="space-y-6">
-              <form
-                onSubmit={createClinic}
-                className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            <form
+              onSubmit={createClinic}
+              className="h-fit rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            >
+              <h2 className="text-xl font-black">Crear clinica nueva</h2>
+              <label className="mt-5 block text-sm font-semibold text-slate-200">
+                Nombre de la clinica
+              </label>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                placeholder="Ej: Clinica San Martin"
+              />
+              <p className="mt-3 break-all text-sm text-slate-400">
+                Slug automatico:{" "}
+                <span className="font-semibold text-slate-200">
+                  {previewSlug || "se genera con el nombre"}
+                </span>
+              </p>
+
+              <button
+                type="submit"
+                disabled={isSaving || !previewSlug}
+                className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <h2 className="text-xl font-black">Crear clinica de prueba</h2>
-                <label className="mt-5 block text-sm font-semibold text-slate-200">
-                  Nombre de la clinica
-                </label>
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
-                  placeholder="Ej: Clinica San Martin"
-                />
-                <p className="mt-3 break-all text-sm text-slate-400">
-                  Slug automatico:{" "}
-                  <span className="font-semibold text-slate-200">
-                    {previewSlug || "se genera con el nombre"}
-                  </span>
-                </p>
-
-                <button
-                  type="submit"
-                  disabled={isSaving || !previewSlug}
-                  className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isSaving ? "Creando kit..." : "Crear clinica y kit"}
-                </button>
-              </form>
-
-              {kit && (
-                <TestKit
-                  kit={kit}
-                  origin={origin}
-                  onCopyKit={() => copyKit(kit)}
-                  onCopyText={copyText}
-                />
-              )}
-            </div>
+                {isSaving ? "Creando..." : "Crear clinica"}
+              </button>
+            </form>
 
             <section className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
-                  <h2 className="text-xl font-black">Clinicas creadas</h2>
+                  <h2 className="text-xl font-black">Clinicas</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    Accesos y estado operativo.
+                    {clinics.length} clínica{clinics.length === 1 ? "" : "s"}
                   </p>
                 </div>
                 <button
@@ -385,82 +370,29 @@ export default function AdminClinicsPage() {
                 </p>
               )}
 
-              <div className="mt-5 space-y-4">
-                {clinics.map((clinic) => {
-                  const links = buildClinicLinks(origin, clinic.slug);
-
-                  return (
-                    <article
-                      key={clinic.id}
-                      className="rounded-2xl border border-white/10 bg-[#0d2530] p-4"
-                    >
-                      <div className="flex flex-col justify-between gap-3 sm:flex-row">
-                        <div>
-                          <h3 className="text-lg font-black">{clinic.name}</h3>
-                          <p className="mt-1 text-sm text-slate-400">
-                            {clinic.slug}
-                          </p>
-                          <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
-                            {clinic.isActive ? "Activa" : "Inactiva"} ·{" "}
-                            {clinic.hasHashedToken
-                              ? "Token seguro"
-                              : clinic.hasLegacyToken
-                                ? "Token legacy"
-                                : "Sin token"}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateClinic(clinic, {
-                                isActive: !clinic.isActive,
-                              })
-                            }
-                            className="rounded-2xl border border-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/10"
-                          >
-                            {clinic.isActive ? "Desactivar" : "Activar"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Esto invalida el token anterior de la clinica. ¿Continuar?"
-                                )
-                              ) {
-                                updateClinic(clinic, {
-                                  regenerateToken: true,
-                                });
-                              }
-                            }}
-                            className="rounded-2xl border border-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/10"
-                          >
-                            Nuevo token
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        <ActionLink
-                          label="QR imprimible"
-                          value={links.qrUrl}
-                          href={links.qrUrl}
-                          onCopy={() => copyText(links.qrUrl, "QR")}
-                        />
-                        <ActionLink
-                          label="Dashboard"
-                          value={links.dashboardUrl}
-                          href={links.dashboardUrl}
-                          onCopy={() =>
-                            copyText(links.dashboardUrl, "Dashboard")
-                          }
-                        />
-                      </div>
-                    </article>
-                  );
-                })}
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {clinics.map((clinic) => (
+                  <ClinicCard
+                    key={clinic.id}
+                    clinic={clinic}
+                    origin={origin}
+                    freshToken={freshTokens[clinic.slug]}
+                    onToggleActive={() =>
+                      updateClinic(clinic, { isActive: !clinic.isActive })
+                    }
+                    onRegenerateToken={() => {
+                      if (
+                        window.confirm(
+                          "Esto invalida el token anterior de la clinica. ¿Continuar?"
+                        )
+                      ) {
+                        updateClinic(clinic, { regenerateToken: true });
+                      }
+                    }}
+                    onCopyText={copyText}
+                    onCopyKit={() => copyKit(clinic)}
+                  />
+                ))}
               </div>
             </section>
           </div>
@@ -476,125 +408,133 @@ export default function AdminClinicsPage() {
   );
 }
 
-function TestKit({
-  kit,
+function ClinicCard({
+  clinic,
   origin,
-  onCopyKit,
+  freshToken,
+  onToggleActive,
+  onRegenerateToken,
   onCopyText,
+  onCopyKit,
 }: {
-  kit: ClinicKit;
+  clinic: AdminClinic;
   origin: string;
-  onCopyKit: () => void;
+  freshToken?: string;
+  onToggleActive: () => void;
+  onRegenerateToken: () => void;
   onCopyText: (value: string, label: string) => void;
+  onCopyKit: () => void;
 }) {
-  const links = buildClinicLinks(origin, kit.clinic.slug);
+  const links = buildClinicLinks(origin, clinic.slug);
 
   return (
-    <section className="rounded-[1.5rem] border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-5">
-      <p className="text-sm font-black uppercase tracking-[0.16em] text-[#9df3e9]">
-        Kit de prueba listo
-      </p>
-      <h2 className="mt-2 text-2xl font-black">{kit.clinic.name}</h2>
+    <article className="rounded-2xl border border-white/10 bg-[#0d2530] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-black">{clinic.name}</h3>
+          <p className="mt-1 text-sm text-slate-400">{clinic.slug}</p>
+          <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
+            {clinic.isActive ? "Activa" : "Inactiva"}
+          </p>
+        </div>
 
-      <div className="mt-5 rounded-2xl bg-white p-4 text-center text-[#071923]">
-        <QRCodeSVG
-          value={links.intakeUrl}
-          size={220}
-          level="M"
-          marginSize={4}
-          title={`QR de pre-triaje ${kit.clinic.name}`}
-        />
-        <p className="mt-3 break-all text-xs font-semibold">
-          {links.intakeUrl}
-        </p>
+        <div className="rounded-xl bg-white p-2">
+          <QRCodeSVG
+            value={links.whatsappUrl}
+            size={96}
+            level="M"
+            marginSize={2}
+            title={`QR de pre-triaje por WhatsApp — ${clinic.name}`}
+          />
+        </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        <KitLine
-          label="QR imprimible"
-          value={links.qrUrl}
-          onCopy={() => onCopyText(links.qrUrl, "QR")}
-        />
-        <KitLine
-          label="Dashboard"
-          value={links.dashboardUrl}
-          onCopy={() => onCopyText(links.dashboardUrl, "Dashboard")}
-        />
-        <KitLine
-          label="Token de clinica"
-          value={kit.token}
-          onCopy={() => onCopyText(kit.token, "Token")}
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={onCopyKit}
-        className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]"
-      >
-        Copiar kit completo
-      </button>
-      <p className="mt-3 text-sm text-slate-300">
-        Guardá el token ahora. Frontera no vuelve a mostrarlo.
-      </p>
-    </section>
-  );
-}
-
-function KitLine({
-  label,
-  value,
-  onCopy,
-}: {
-  label: string;
-  value: string;
-  onCopy: () => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#0d2530] p-3">
-      <p className="text-sm font-semibold text-slate-300">{label}</p>
-      <p className="mt-1 break-all text-xs text-slate-400">{value}</p>
-      <button
-        type="button"
-        onClick={onCopy}
-        className="mt-3 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
-      >
-        Copiar
-      </button>
-    </div>
-  );
-}
-
-function ActionLink({
-  label,
-  value,
-  href,
-  onCopy,
-}: {
-  label: string;
-  value: string;
-  href: string;
-  onCopy: () => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-      <p className="text-sm font-semibold text-slate-300">{label}</p>
-      <p className="mt-1 break-all text-xs text-slate-400">{value}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <Link
-          href={href}
+          href={links.qrPageUrl}
           className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
         >
-          Abrir
+          Ver QR de guardia
+        </Link>
+        <Link
+          href={links.dashboardUrl}
+          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+        >
+          Abrir dashboard
         </Link>
         <button
           type="button"
-          onClick={onCopy}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+          onClick={onCopyKit}
+          className="rounded-xl bg-[#52d6c4] px-3 py-2 text-xs font-bold text-[#071923]"
         >
-          Copiar
+          Copiar kit
         </button>
       </div>
-    </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onToggleActive}
+          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+        >
+          {clinic.isActive ? "Desactivar" : "Activar"}
+        </button>
+        <button
+          type="button"
+          onClick={onRegenerateToken}
+          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+        >
+          {clinic.hasHashedToken || clinic.hasLegacyToken
+            ? "Nuevo token"
+            : "Generar token"}
+        </button>
+      </div>
+
+      {freshToken && (
+        <div className="mt-3 rounded-xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-3">
+          <p className="text-xs font-semibold text-[#9df3e9]">
+            Token de acceso — guardalo ahora, no se vuelve a mostrar
+          </p>
+          <p className="mt-1 break-all text-xs font-mono text-white">
+            {freshToken}
+          </p>
+          <button
+            type="button"
+            onClick={() => onCopyText(freshToken, "Token")}
+            className="mt-2 rounded-lg border border-white/10 px-2 py-1 text-xs font-bold text-white transition hover:bg-white/10"
+          >
+            Copiar token
+          </button>
+        </div>
+      )}
+
+      <details className="mt-3 text-xs text-slate-400">
+        <summary className="cursor-pointer font-semibold">
+          Ver links completos
+        </summary>
+        <div className="mt-2 space-y-2 break-all">
+          <p>
+            WhatsApp: {links.whatsappUrl}{" "}
+            <button
+              type="button"
+              onClick={() => onCopyText(links.whatsappUrl, "Link de WhatsApp")}
+              className="font-bold text-white underline"
+            >
+              copiar
+            </button>
+          </p>
+          <p>
+            Dashboard: {links.dashboardUrl}{" "}
+            <button
+              type="button"
+              onClick={() => onCopyText(links.dashboardUrl, "Dashboard")}
+              className="font-bold text-white underline"
+            >
+              copiar
+            </button>
+          </p>
+        </div>
+      </details>
+    </article>
   );
 }

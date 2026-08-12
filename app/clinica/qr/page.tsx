@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Suspense, useEffect, useState } from "react";
+import { buildClinicWhatsappUrl } from "@/lib/whatsappLink";
 
 type Clinic = {
   name: string;
@@ -33,10 +34,7 @@ function ClinicQrContent() {
       )}`;
       setTargetUrl(nextTargetUrl);
 
-      const whatsappMessage = `[FRONTERA-CLINIC:${clinicSlug}] Hola, quiero hacer mi pre-triaje`;
-      setWhatsappUrl(
-        `https://wa.me/5492617261009?text=${encodeURIComponent(whatsappMessage)}`
-      );
+      setWhatsappUrl(buildClinicWhatsappUrl(clinicSlug));
 
       fetch(`/api/clinics/${clinicSlug}`)
         .then(async (response) => {
