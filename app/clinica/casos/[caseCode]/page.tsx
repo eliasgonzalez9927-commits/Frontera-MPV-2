@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   formatCaseDate,
@@ -17,6 +17,7 @@ type PageProps = {
 };
 
 function ClinicCaseDetailContent({ params }: PageProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
   const tokenStorageKey = clinicSlug
@@ -29,7 +30,9 @@ function ClinicCaseDetailContent({ params }: PageProps) {
   const [token, setToken] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : sessionStorage.getItem(tokenStorageKey) ?? ""
+      : sessionStorage.getItem(tokenStorageKey) ??
+        sessionStorage.getItem("frontera-admin-session") ??
+        ""
   );
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -125,12 +128,6 @@ function ClinicCaseDetailContent({ params }: PageProps) {
 
   async function handleLoginSubmit() {
     setLoginError("");
-
-    if (!clinicSlug) {
-      setLoginError("Este link no tiene una clínica asociada (falta ?clinic=).");
-      return;
-    }
-
     setIsLoggingIn(true);
 
     try {
@@ -138,7 +135,6 @@ function ClinicCaseDetailContent({ params }: PageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clinic: clinicSlug,
           username: usernameInput.trim(),
           password: passwordInput,
         }),
@@ -150,9 +146,18 @@ function ClinicCaseDetailContent({ params }: PageProps) {
         return;
       }
 
-      sessionStorage.setItem(tokenStorageKey, payload.clinicToken);
-      setToken(payload.clinicToken);
+      const realSlug = payload.clinic.slug as string;
+      sessionStorage.setItem(`frontera-clinic-token:${realSlug}`, payload.clinicToken);
       setPasswordInput("");
+
+      if (realSlug !== clinicSlug) {
+        router.replace(
+          `/clinica/casos/${caseCode}?clinic=${encodeURIComponent(realSlug)}`
+        );
+        return;
+      }
+
+      setToken(payload.clinicToken);
     } catch {
       setLoginError("No pudimos iniciar sesión.");
     } finally {

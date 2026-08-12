@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateAdminAuthorization } from "@/lib/adminAuth";
-import { setClinicCredentials } from "@/lib/clinics";
+import { getPrimaryClinicAdmin, upsertClinicUser } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +12,9 @@ type ClinicAdminRow = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  username: string | null;
-  password_hash: string | null;
 };
 
-function mapClinic(row: ClinicAdminRow) {
+function mapClinic(row: ClinicAdminRow, hasLogin: boolean) {
   return {
     id: row.id,
     name: row.name,
@@ -24,7 +22,7 @@ function mapClinic(row: ClinicAdminRow) {
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    hasLogin: Boolean(row.username && row.password_hash),
+    hasLogin,
   };
 }
 
@@ -74,60 +72,62 @@ export async function PATCH(
   }
 
   const { slug } = await context.params;
-  let credentials: { username: string; password: string } | undefined;
-
-  if (body.regeneratePassword === true) {
-    credentials = await setClinicCredentials(slug);
-  }
-
-  if (Object.keys(updates).length === 0 && !credentials) {
-    return NextResponse.json(
-      { error: "No hay cambios para aplicar." },
-      { status: 400 }
-    );
-  }
 
   try {
     const supabase = getSupabaseServerClient();
+    let data: ClinicAdminRow | null = null;
 
-    if (Object.keys(updates).length === 0) {
-      // Only the password changed — still fetch the row to return fresh data.
-      const { data, error } = await supabase
+    if (Object.keys(updates).length > 0) {
+      const result = await supabase
         .from("clinics")
-        .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
+        .update(updates)
         .eq("slug", slug)
+        .select("id,name,slug,is_active,created_at,updated_at")
         .single<ClinicAdminRow>();
 
-      if (error || !data) {
+      if (result.error || !result.data) {
         return NextResponse.json(
           { error: "No se pudo actualizar la clinica." },
           { status: 404 }
         );
       }
 
-      return NextResponse.json({
-        clinic: mapClinic(data),
-        clinicUsername: credentials?.username,
-        clinicPassword: credentials?.password,
+      data = result.data;
+    } else {
+      const result = await supabase
+        .from("clinics")
+        .select("id,name,slug,is_active,created_at,updated_at")
+        .eq("slug", slug)
+        .single<ClinicAdminRow>();
+
+      if (result.error || !result.data) {
+        return NextResponse.json(
+          { error: "No se pudo actualizar la clinica." },
+          { status: 404 }
+        );
+      }
+
+      data = result.data;
+    }
+
+    let credentials: { username: string; password: string } | undefined;
+
+    if (body.regeneratePassword === true) {
+      const primaryAdmin = await getPrimaryClinicAdmin(data.id);
+      credentials = await upsertClinicUser({
+        clinicId: data.id,
+        username: primaryAdmin?.username ?? slug,
+        role: "admin",
+        existingUserId: primaryAdmin?.id,
       });
     }
 
-    const { data, error } = await supabase
-      .from("clinics")
-      .update(updates)
-      .eq("slug", slug)
-      .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
-      .single<ClinicAdminRow>();
-
-    if (error || !data) {
-      return NextResponse.json(
-        { error: "No se pudo actualizar la clinica." },
-        { status: 404 }
-      );
-    }
+    const hasLogin = Boolean(
+      credentials || (await getPrimaryClinicAdmin(data.id))
+    );
 
     return NextResponse.json({
-      clinic: mapClinic(data),
+      clinic: mapClinic(data, hasLogin),
       clinicUsername: credentials?.username,
       clinicPassword: credentials?.password,
     });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateAdminAuthorization } from "@/lib/adminAuth";
-import { setClinicCredentials } from "@/lib/clinics";
+import { getPrimaryClinicAdmin, upsertClinicUser } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +12,6 @@ type ClinicAdminRow = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  username: string | null;
-  password_hash: string | null;
 };
 
 function normalizeSlug(value: string) {
@@ -34,7 +32,6 @@ function mapClinic(row: ClinicAdminRow) {
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    hasLogin: Boolean(row.username && row.password_hash),
   };
 }
 
@@ -66,7 +63,7 @@ export async function GET(request: Request) {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("clinics")
-      .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
+      .select("id,name,slug,is_active,created_at,updated_at")
       .order("created_at", { ascending: false })
       .returns<ClinicAdminRow[]>();
 
@@ -77,7 +74,14 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ clinics: data.map(mapClinic) });
+    const clinicsWithAdmin = await Promise.all(
+      data.map(async (row) => ({
+        ...mapClinic(row),
+        hasLogin: Boolean(await getPrimaryClinicAdmin(row.id)),
+      }))
+    );
+
+    return NextResponse.json({ clinics: clinicsWithAdmin });
   } catch {
     return NextResponse.json(
       { error: "No se pudieron cargar las clinicas." },
@@ -131,7 +135,7 @@ export async function POST(request: Request) {
         slug,
         is_active: true,
       })
-      .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
+      .select("id,name,slug,is_active,created_at,updated_at")
       .single<ClinicAdminRow>();
 
     if (error || !data) {
@@ -141,7 +145,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const credentials = await setClinicCredentials(slug);
+    const credentials = await upsertClinicUser({
+      clinicId: data.id,
+      username: slug,
+      role: "admin",
+    });
 
     return NextResponse.json({
       clinic: { ...mapClinic(data), hasLogin: true },

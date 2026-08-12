@@ -1,16 +1,23 @@
--- Frontera MVP: clinic username/password login.
--- Run after supabase/clinic_token_hashes.sql.
--- Replaces the raw "clinic access token" with a real username/password login
--- per clinic/hospital, matching how admin login already works.
+-- Frontera MVP: clinic team accounts (replaces the single-token-per-clinic
+-- and single-username-per-clinic approaches with real multi-user login).
+-- Run this instead of any earlier draft of this file — it supersedes it.
 
-alter table public.clinics
-  add column if not exists username text,
-  add column if not exists password_hash text;
+create extension if not exists pgcrypto with schema extensions;
 
-create unique index if not exists clinics_username_idx
-  on public.clinics (username)
-  where username is not null;
+create table if not exists public.clinic_users (
+  id uuid primary key default extensions.gen_random_uuid(),
+  clinic_id uuid not null references public.clinics(id) on delete cascade,
+  username text not null unique,
+  password_hash text not null,
+  role text not null default 'staff' check (role in ('admin', 'staff')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
--- The app sets username/password_hash from the admin panel (bcrypt-hashed
--- there, not in SQL) when you create or edit a clinic — nothing to fill in
--- here manually. This migration only adds the columns/index.
+create index if not exists clinic_users_clinic_id_idx
+  on public.clinic_users (clinic_id);
+
+-- Nothing to fill in manually — the app creates the first "admin" account
+-- for a clinic when you create it from /admin/clinicas, and that clinic
+-- admin can add staff accounts from there on.

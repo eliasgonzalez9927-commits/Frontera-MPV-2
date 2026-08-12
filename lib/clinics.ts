@@ -2,13 +2,24 @@ import "server-only";
 
 import bcrypt from "bcryptjs";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { validateAdminAuthorization } from "@/lib/adminAuth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+
+export type ClinicRole = "admin" | "staff";
 
 export type ClinicPublic = {
   id: string;
   name: string;
   slug: string;
   isActive: boolean;
+};
+
+export type ClinicSession = {
+  clinic: ClinicPublic;
+  username: string;
+  role: ClinicRole;
+  /** True when this session came from the super-admin bypass, not a real clinic login. */
+  isSuperAdmin: boolean;
 };
 
 type ClinicRow = {
@@ -18,13 +29,23 @@ type ClinicRow = {
   is_active: boolean;
 };
 
-type ClinicAuthRow = ClinicRow & {
-  username: string | null;
-  password_hash: string | null;
+type ClinicUserRow = {
+  id: string;
+  clinic_id: string;
+  username: string;
+  password_hash: string;
+  role: ClinicRole;
+  is_active: boolean;
+  created_at: string;
+  clinics: ClinicRow | null;
 };
 
 export type ClinicValidation =
   | { ok: true; clinic: ClinicPublic }
+  | { ok: false; status: number; message: string };
+
+export type ClinicSessionValidation =
+  | { ok: true; session: ClinicSession }
   | { ok: false; status: number; message: string };
 
 const clinicSessionTtlSeconds = 60 * 60 * 12;
@@ -81,23 +102,23 @@ function sign(payload: string) {
 }
 
 // Readable, url-safe random password — not meant to be memorized long-term,
-// just easy to read off a screen and type once when the clinic sets it up.
+// just easy to read off a screen and type once when an account is created.
 export function generateClinicPassword() {
   return randomBytes(6).toString("base64url");
-}
-
-export function buildClinicUsername(slug: string) {
-  return slug;
 }
 
 export async function hashClinicPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
 
-export function createClinicSessionToken(slug: string, username: string) {
+export function createClinicSessionToken(
+  slug: string,
+  username: string,
+  role: ClinicRole
+) {
   const expiresAt = Math.floor(Date.now() / 1000) + clinicSessionTtlSeconds;
   const payload = base64UrlEncode(
-    JSON.stringify({ sub: username, clinic: slug, exp: expiresAt })
+    JSON.stringify({ sub: username, clinic: slug, role, exp: expiresAt })
   );
   const signature = sign(payload);
 
@@ -136,36 +157,121 @@ export async function getActiveClinicBySlug(
 }
 
 /**
- * Sets (or resets) a clinic's login. Called from the admin panel — the
- * plaintext password is returned once so it can be shown/copied, then only
- * the bcrypt hash is kept in the database.
+ * Creates (or resets) a clinic team account. Called from the admin panel
+ * (creating a clinic's first "admin" account) or from a clinic admin adding
+ * staff. The plaintext password is returned once so it can be shown/copied.
  */
-export async function setClinicCredentials(slug: string, password?: string) {
-  const username = buildClinicUsername(slug);
-  const finalPassword = password?.trim() || generateClinicPassword();
+export async function upsertClinicUser(params: {
+  clinicId: string;
+  username: string;
+  role: ClinicRole;
+  password?: string;
+  existingUserId?: string;
+}) {
+  const finalPassword = params.password?.trim() || generateClinicPassword();
   const passwordHash = await hashClinicPassword(finalPassword);
-
   const supabase = getSupabaseServerClient();
-  const { error } = await supabase
-    .from("clinics")
-    .update({ username, password_hash: passwordHash })
-    .eq("slug", slug);
+
+  if (params.existingUserId) {
+    const { error } = await supabase
+      .from("clinic_users")
+      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .eq("id", params.existingUserId);
+
+    if (error) {
+      throw error;
+    }
+  } else {
+    const { error } = await supabase.from("clinic_users").insert({
+      clinic_id: params.clinicId,
+      username: params.username,
+      password_hash: passwordHash,
+      role: params.role,
+      is_active: true,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  return { username: params.username, password: finalPassword };
+}
+
+export async function listClinicUsers(clinicId: string) {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("clinic_users")
+    .select("id,username,role,is_active,created_at")
+    .eq("clinic_id", clinicId)
+    .order("created_at", { ascending: true });
 
   if (error) {
     throw error;
   }
 
-  return { username, password: finalPassword };
+  return data as Array<{
+    id: string;
+    username: string;
+    role: ClinicRole;
+    is_active: boolean;
+    created_at: string;
+  }>;
+}
+
+/** The first ("primary") admin-role account for a clinic, if any. */
+export async function getPrimaryClinicAdmin(clinicId: string) {
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase
+    .from("clinic_users")
+    .select("id,username")
+    .eq("clinic_id", clinicId)
+    .eq("role", "admin")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string; username: string }>();
+
+  return data;
+}
+
+export async function getClinicUserById(userId: string) {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("clinic_users")
+    .select("id,clinic_id,username,role,is_active")
+    .eq("id", userId)
+    .maybeSingle<{
+      id: string;
+      clinic_id: string;
+      username: string;
+      role: ClinicRole;
+      is_active: boolean;
+    }>();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+export async function setClinicUserActive(userId: string, isActive: boolean) {
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase
+    .from("clinic_users")
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function validateClinicCredentials(
-  slug: string,
   username: string,
   password: string
-): Promise<ClinicValidation> {
-  const normalizedSlug = slug.trim();
-
-  if (!normalizedSlug || !username || !password) {
+): Promise<ClinicSessionValidation> {
+  if (!username || !password) {
     return {
       ok: false,
       status: 400,
@@ -175,50 +281,67 @@ export async function validateClinicCredentials(
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
-    .from("clinics")
-    .select("id,name,slug,is_active,username,password_hash")
-    .eq("slug", normalizedSlug)
-    .maybeSingle<ClinicAuthRow>();
+    .from("clinic_users")
+    .select("id,clinic_id,username,password_hash,role,is_active,clinics(id,name,slug,is_active)")
+    .eq("username", username.trim())
+    .maybeSingle<ClinicUserRow>();
 
-  if (error || !data || !data.is_active) {
-    return {
-      ok: false,
-      status: 404,
-      message: "Clinica no encontrada o inactiva.",
-    };
-  }
-
-  if (!data.username || !data.password_hash) {
-    return {
-      ok: false,
-      status: 401,
-      message: "Esta clinica todavia no tiene usuario y contrasena configurados.",
-    };
-  }
-
-  const usernameOk = safeEqual(username.trim(), data.username);
-  const passwordOk = await bcrypt.compare(password, data.password_hash);
-
-  if (!usernameOk || !passwordOk) {
+  if (error || !data || !data.is_active || !data.clinics?.is_active) {
     return { ok: false, status: 401, message: "Usuario o contrasena incorrectos." };
   }
 
-  return { ok: true, clinic: mapClinic(data) };
+  const passwordOk = await bcrypt.compare(password, data.password_hash);
+
+  if (!passwordOk) {
+    return { ok: false, status: 401, message: "Usuario o contrasena incorrectos." };
+  }
+
+  return {
+    ok: true,
+    session: {
+      clinic: mapClinic(data.clinics),
+      username: data.username,
+      role: data.role,
+      isSuperAdmin: false,
+    },
+  };
 }
 
 /**
- * Validates the signed session token issued by /api/clinic/login — this is
- * what actually gates /api/clinic/cases, not the raw password on every
- * request.
+ * Validates access to a specific clinic's data. Accepts either:
+ * 1. A super-admin bearer token (the founder's account) — bypasses any
+ *    per-clinic login, scoped to any clinic.
+ * 2. A signed clinic session token whose `clinic` claim matches the
+ *    requested slug.
  */
-export async function validateClinicSessionBySlug(
+export async function validateClinicAccessBySlug(
   slug: string,
   request: Request
-): Promise<ClinicValidation> {
+): Promise<ClinicSessionValidation> {
   const normalizedSlug = slug.trim();
 
   if (!normalizedSlug) {
     return { ok: false, status: 400, message: "El slug de clinica es obligatorio." };
+  }
+
+  const adminAuth = validateAdminAuthorization(request);
+
+  if (adminAuth.ok) {
+    const clinicResult = await getActiveClinicBySlug(normalizedSlug);
+
+    if (!clinicResult.ok) {
+      return clinicResult;
+    }
+
+    return {
+      ok: true,
+      session: {
+        clinic: clinicResult.clinic,
+        username: "admin",
+        role: "admin",
+        isSuperAdmin: true,
+      },
+    };
   }
 
   const authorization = request.headers.get("authorization");
@@ -244,7 +367,7 @@ export async function validateClinicSessionBySlug(
     return { ok: false, status: 401, message: "Sesion de clinica invalida." };
   }
 
-  let session: { sub?: unknown; clinic?: unknown; exp?: unknown };
+  let session: { sub?: unknown; clinic?: unknown; role?: unknown; exp?: unknown };
 
   try {
     session = JSON.parse(base64UrlDecode(payload));
@@ -255,6 +378,8 @@ export async function validateClinicSessionBySlug(
   if (
     typeof session.clinic !== "string" ||
     session.clinic !== normalizedSlug ||
+    typeof session.sub !== "string" ||
+    (session.role !== "admin" && session.role !== "staff") ||
     typeof session.exp !== "number" ||
     session.exp < Math.floor(Date.now() / 1000)
   ) {
@@ -265,5 +390,19 @@ export async function validateClinicSessionBySlug(
     };
   }
 
-  return getActiveClinicBySlug(normalizedSlug);
+  const clinicResult = await getActiveClinicBySlug(normalizedSlug);
+
+  if (!clinicResult.ok) {
+    return clinicResult;
+  }
+
+  return {
+    ok: true,
+    session: {
+      clinic: clinicResult.clinic,
+      username: session.sub,
+      role: session.role,
+      isSuperAdmin: false,
+    },
+  };
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateClinicSessionBySlug } from "@/lib/clinics";
+import { validateClinicAccessBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   allowedStatuses,
@@ -36,7 +36,7 @@ async function validateClinicScope(request: Request) {
     };
   }
 
-  return validateClinicSessionBySlug(clinicSlug, request);
+  return validateClinicAccessBySlug(clinicSlug, request);
 }
 
 export async function GET(
@@ -66,7 +66,7 @@ export async function GET(
   }
 
   try {
-    const { data, error } = await getCase(caseCode, auth.clinic?.id);
+    const { data, error } = await getCase(caseCode, auth.session?.clinic.id);
 
     if (error || !data) {
       return NextResponse.json({ error: "Caso no encontrado para esta clinica." }, { status: 404 });
@@ -131,8 +131,8 @@ export async function PATCH(
       .update({ status })
       .eq("case_code", caseCode);
 
-    if (auth.clinic?.id) {
-      query = query.eq("clinic_id", auth.clinic.id);
+    if (auth.session?.clinic.id) {
+      query = query.eq("clinic_id", auth.session.clinic.id);
     }
 
     const { data, error } = await query

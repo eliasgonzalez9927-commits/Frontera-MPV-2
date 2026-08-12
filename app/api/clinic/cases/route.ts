@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateClinicSessionBySlug } from "@/lib/clinics";
+import { validateClinicAccessBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   mapRowToTriageCase,
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const clinicAuth = await validateClinicSessionBySlug(clinicSlug, request);
+    const clinicAuth = await validateClinicAccessBySlug(clinicSlug, request);
 
     if (!clinicAuth.ok) {
       return NextResponse.json(
@@ -37,11 +37,11 @@ export async function GET(request: Request) {
     }
 
     const supabase = getSupabaseServerClient();
-    let query = supabase
+    const query = supabase
       .from("triage_cases")
       .select("*, clinics(name,slug)")
       .order("created_at", { ascending: false })
-      .eq("clinic_id", clinicAuth.clinic.id);
+      .eq("clinic_id", clinicAuth.session.clinic.id);
 
     const { data, error } = await query.returns<TriageCaseRow[]>();
 

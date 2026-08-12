@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Priority } from "@/lib/triage";
 import {
   getCaseOriginLabel,
@@ -88,6 +88,7 @@ function priorityClass(priority: Priority) {
 }
 
 function ClinicDashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const clinicSlug = searchParams.get("clinic")?.trim() ?? "";
   const tokenStorageKey = clinicSlug
@@ -96,7 +97,9 @@ function ClinicDashboardContent() {
   const [token, setToken] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : sessionStorage.getItem(tokenStorageKey) ?? ""
+      : sessionStorage.getItem(tokenStorageKey) ??
+        sessionStorage.getItem("frontera-admin-session") ??
+        ""
   );
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -253,12 +256,6 @@ function ClinicDashboardContent() {
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoginError("");
-
-    if (!clinicSlug) {
-      setLoginError("Este link no tiene una clínica asociada (falta ?clinic=).");
-      return;
-    }
-
     setIsLoggingIn(true);
 
     try {
@@ -266,7 +263,6 @@ function ClinicDashboardContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clinic: clinicSlug,
           username: usernameInput.trim(),
           password: passwordInput,
         }),
@@ -278,9 +274,16 @@ function ClinicDashboardContent() {
         return;
       }
 
-      sessionStorage.setItem(tokenStorageKey, payload.clinicToken);
-      setToken(payload.clinicToken);
+      const realSlug = payload.clinic.slug as string;
+      sessionStorage.setItem(`frontera-clinic-token:${realSlug}`, payload.clinicToken);
       setPasswordInput("");
+
+      if (realSlug !== clinicSlug) {
+        router.replace(`/clinica/dashboard?clinic=${encodeURIComponent(realSlug)}`);
+        return;
+      }
+
+      setToken(payload.clinicToken);
     } catch {
       setLoginError("No pudimos iniciar sesión.");
     } finally {
@@ -314,6 +317,14 @@ function ClinicDashboardContent() {
                 className="ml-3 font-bold text-[#9df3e9] underline-offset-4 hover:underline"
               >
                 Ver QR de guardia
+              </Link>
+            )}
+            {clinicSlug && (
+              <Link
+                href={`/clinica/equipo?clinic=${encodeURIComponent(clinicSlug)}`}
+                className="ml-3 font-bold text-[#9df3e9] underline-offset-4 hover:underline"
+              >
+                Equipo
               </Link>
             )}
           </div>
