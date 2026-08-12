@@ -98,7 +98,10 @@ function ClinicDashboardContent() {
       ? ""
       : sessionStorage.getItem(tokenStorageKey) ?? ""
   );
-  const [tokenInput, setTokenInput] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [clinicName, setClinicName] = useState("");
   const [cases, setCases] = useState<TriageCase[]>([]);
   const [message, setMessage] = useState("");
@@ -247,11 +250,42 @@ function ClinicDashboardContent() {
     return sortedCases.filter((item) => item.status === selectedFilter);
   }, [cases, selectedFilter]);
 
-  function handleTokenSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextToken = tokenInput.trim();
-    sessionStorage.setItem(tokenStorageKey, nextToken);
-    setToken(nextToken);
+    setLoginError("");
+
+    if (!clinicSlug) {
+      setLoginError("Este link no tiene una clínica asociada (falta ?clinic=).");
+      return;
+    }
+
+    setIsLoggingIn(true);
+
+    try {
+      const response = await fetch("/api/clinic/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clinic: clinicSlug,
+          username: usernameInput.trim(),
+          password: passwordInput,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setLoginError(payload.error ?? "No pudimos iniciar sesión.");
+        return;
+      }
+
+      sessionStorage.setItem(tokenStorageKey, payload.clinicToken);
+      setToken(payload.clinicToken);
+      setPasswordInput("");
+    } catch {
+      setLoginError("No pudimos iniciar sesión.");
+    } finally {
+      setIsLoggingIn(false);
+    }
   }
 
   return (
@@ -287,25 +321,40 @@ function ClinicDashboardContent() {
 
         {!token && (
           <form
-            onSubmit={handleTokenSubmit}
-            className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            onSubmit={handleLoginSubmit}
+            className="mt-8 max-w-md rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
           >
             <label className="text-sm font-semibold text-slate-200">
-              {clinicSlug
-                ? "Token temporal de esta clínica"
-                : "Token temporal de clínica"}
+              Usuario
             </label>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(event) => setTokenInput(event.target.value)}
-                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
-              />
-              <button className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923]">
-                Entrar
-              </button>
-            </div>
+            <input
+              value={usernameInput}
+              onChange={(event) => setUsernameInput(event.target.value)}
+              autoComplete="username"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+            />
+
+            <label className="mt-4 block text-sm font-semibold text-slate-200">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(event) => setPasswordInput(event.target.value)}
+              autoComplete="current-password"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+            />
+
+            <button
+              disabled={isLoggingIn}
+              className="mt-4 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isLoggingIn ? "Entrando..." : "Entrar"}
+            </button>
+
+            {loginError && (
+              <p className="mt-3 text-sm text-yellow-200">{loginError}</p>
+            )}
           </form>
         )}
 

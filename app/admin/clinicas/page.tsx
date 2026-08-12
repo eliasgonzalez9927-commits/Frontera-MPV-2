@@ -12,8 +12,12 @@ type AdminClinic = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  hasHashedToken: boolean;
-  hasLegacyToken: boolean;
+  hasLogin: boolean;
+};
+
+type FreshCredentials = {
+  username: string;
+  password: string;
 };
 
 const adminSessionStorageKey = "frontera-admin-session";
@@ -50,7 +54,9 @@ export default function AdminClinicsPage() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
-  const [freshTokens, setFreshTokens] = useState<Record<string, string>>({});
+  const [freshCredentials, setFreshCredentials] = useState<
+    Record<string, FreshCredentials>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const origin = useMemo(
@@ -132,7 +138,7 @@ export default function AdminClinicsPage() {
     sessionStorage.removeItem(adminSessionStorageKey);
     setAdminSession("");
     setClinics([]);
-    setFreshTokens({});
+    setFreshCredentials({});
     setMessage("");
     setCopyMessage("");
   }
@@ -163,9 +169,12 @@ export default function AdminClinicsPage() {
       }
 
       setClinics((current) => [payload.clinic, ...current]);
-      setFreshTokens((current) => ({
+      setFreshCredentials((current) => ({
         ...current,
-        [payload.clinic.slug]: payload.clinicAccessToken,
+        [payload.clinic.slug]: {
+          username: payload.clinicUsername,
+          password: payload.clinicPassword,
+        },
       }));
       setName("");
       setMessage(`Clínica "${payload.clinic.name}" creada.`);
@@ -178,7 +187,7 @@ export default function AdminClinicsPage() {
 
   async function updateClinic(
     clinic: AdminClinic,
-    body: { isActive?: boolean; regenerateToken?: boolean }
+    body: { isActive?: boolean; regeneratePassword?: boolean }
   ) {
     setMessage("");
     setCopyMessage("");
@@ -208,16 +217,19 @@ export default function AdminClinicsPage() {
         )
       );
 
-      if (payload.clinicAccessToken) {
-        setFreshTokens((current) => ({
+      if (payload.clinicPassword) {
+        setFreshCredentials((current) => ({
           ...current,
-          [payload.clinic.slug]: payload.clinicAccessToken,
+          [payload.clinic.slug]: {
+            username: payload.clinicUsername,
+            password: payload.clinicPassword,
+          },
         }));
       }
 
       setMessage(
-        payload.clinicAccessToken
-          ? "Token regenerado. Guardalo ahora."
+        payload.clinicPassword
+          ? "Contraseña nueva generada. Guardala ahora."
           : "Clinica actualizada."
       );
     } catch {
@@ -236,15 +248,19 @@ export default function AdminClinicsPage() {
 
   async function copyKit(clinic: AdminClinic) {
     const links = buildClinicLinks(origin, clinic.slug);
-    const token = freshTokens[clinic.slug];
+    const credentials = freshCredentials[clinic.slug];
     const lines = [
       `Clinica: ${clinic.name}`,
       `QR / link de WhatsApp: ${links.whatsappUrl}`,
       `Dashboard: ${links.dashboardUrl}`,
     ];
 
-    if (token) {
-      lines.push(`Token de acceso: ${token}`);
+    if (credentials) {
+      lines.push(`Usuario: ${credentials.username}`, `Contraseña: ${credentials.password}`);
+    } else {
+      lines.push(
+        `Usuario: ${clinic.slug} (la contraseña no se puede volver a mostrar — usá "Nueva contraseña" si se perdió)`
+      );
     }
 
     await copyText(lines.join("\n"), "Kit");
@@ -266,8 +282,8 @@ export default function AdminClinicsPage() {
               Clinicas
             </h1>
             <p className="mt-2 max-w-2xl text-slate-300">
-              Cada clínica tiene una sola tarjeta: QR de WhatsApp, dashboard y
-              token, siempre en el mismo lugar.
+              Cada clínica u hospital tiene su propio usuario y contraseña
+              para entrar a su dashboard — no un token para pegar a mano.
             </p>
           </div>
 
@@ -376,17 +392,17 @@ export default function AdminClinicsPage() {
                     key={clinic.id}
                     clinic={clinic}
                     origin={origin}
-                    freshToken={freshTokens[clinic.slug]}
+                    freshCredentials={freshCredentials[clinic.slug]}
                     onToggleActive={() =>
                       updateClinic(clinic, { isActive: !clinic.isActive })
                     }
-                    onRegenerateToken={() => {
+                    onRegeneratePassword={() => {
                       if (
                         window.confirm(
-                          "Esto invalida el token anterior de la clinica. ¿Continuar?"
+                          "Esto invalida la contraseña anterior de la clinica. ¿Continuar?"
                         )
                       ) {
-                        updateClinic(clinic, { regenerateToken: true });
+                        updateClinic(clinic, { regeneratePassword: true });
                       }
                     }}
                     onCopyText={copyText}
@@ -411,17 +427,17 @@ export default function AdminClinicsPage() {
 function ClinicCard({
   clinic,
   origin,
-  freshToken,
+  freshCredentials,
   onToggleActive,
-  onRegenerateToken,
+  onRegeneratePassword,
   onCopyText,
   onCopyKit,
 }: {
   clinic: AdminClinic;
   origin: string;
-  freshToken?: string;
+  freshCredentials?: FreshCredentials;
   onToggleActive: () => void;
-  onRegenerateToken: () => void;
+  onRegeneratePassword: () => void;
   onCopyText: (value: string, label: string) => void;
   onCopyKit: () => void;
 }) {
@@ -432,7 +448,9 @@ function ClinicCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-black">{clinic.name}</h3>
-          <p className="mt-1 text-sm text-slate-400">{clinic.slug}</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Usuario: <span className="font-mono">{clinic.slug}</span>
+          </p>
           <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
             {clinic.isActive ? "Activa" : "Inactiva"}
           </p>
@@ -481,29 +499,38 @@ function ClinicCard({
         </button>
         <button
           type="button"
-          onClick={onRegenerateToken}
+          onClick={onRegeneratePassword}
           className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
         >
-          {clinic.hasHashedToken || clinic.hasLegacyToken
-            ? "Nuevo token"
-            : "Generar token"}
+          {clinic.hasLogin ? "Nueva contraseña" : "Generar acceso"}
         </button>
       </div>
 
-      {freshToken && (
+      {freshCredentials && (
         <div className="mt-3 rounded-xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-3">
           <p className="text-xs font-semibold text-[#9df3e9]">
-            Token de acceso — guardalo ahora, no se vuelve a mostrar
+            Acceso del dashboard — guardalo ahora, la contraseña no se vuelve
+            a mostrar
           </p>
-          <p className="mt-1 break-all text-xs font-mono text-white">
-            {freshToken}
+          <p className="mt-2 text-xs text-slate-300">Usuario</p>
+          <p className="text-xs font-mono text-white">
+            {freshCredentials.username}
+          </p>
+          <p className="mt-2 text-xs text-slate-300">Contraseña</p>
+          <p className="text-xs font-mono text-white">
+            {freshCredentials.password}
           </p>
           <button
             type="button"
-            onClick={() => onCopyText(freshToken, "Token")}
+            onClick={() =>
+              onCopyText(
+                `Usuario: ${freshCredentials.username}\nContraseña: ${freshCredentials.password}`,
+                "Acceso"
+              )
+            }
             className="mt-2 rounded-lg border border-white/10 px-2 py-1 text-xs font-bold text-white transition hover:bg-white/10"
           >
-            Copiar token
+            Copiar acceso
           </button>
         </div>
       )}

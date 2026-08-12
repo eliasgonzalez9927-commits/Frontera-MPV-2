@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateClinicTokenBySlug } from "@/lib/clinics";
+import { validateClinicSessionBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   mapRowToTriageCase,
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const clinicAuth = await validateClinicTokenBySlug(clinicSlug, request);
+    const clinicAuth = await validateClinicSessionBySlug(clinicSlug, request);
 
     if (!clinicAuth.ok) {
       return NextResponse.json(

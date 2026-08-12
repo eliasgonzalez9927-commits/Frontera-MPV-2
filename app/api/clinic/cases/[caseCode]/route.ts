@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateClinicTokenBySlug } from "@/lib/clinics";
+import { validateClinicSessionBySlug } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   allowedStatuses,
@@ -36,7 +36,7 @@ async function validateClinicScope(request: Request) {
     };
   }
 
-  return validateClinicTokenBySlug(clinicSlug, request);
+  return validateClinicSessionBySlug(clinicSlug, request);
 }
 
 export async function GET(

@@ -1,7 +1,6 @@
-import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { validateAdminAuthorization } from "@/lib/adminAuth";
-import { hashClinicToken } from "@/lib/clinics";
+import { setClinicCredentials } from "@/lib/clinics";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -13,17 +12,9 @@ type ClinicAdminRow = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  access_token: string | null;
-  access_token_hash: string | null;
+  username: string | null;
+  password_hash: string | null;
 };
-
-function generateClinicToken() {
-  return randomBytes(32)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
 
 function normalizeSlug(value: string) {
   return value
@@ -43,8 +34,7 @@ function mapClinic(row: ClinicAdminRow) {
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    hasHashedToken: Boolean(row.access_token_hash),
-    hasLegacyToken: Boolean(row.access_token),
+    hasLogin: Boolean(row.username && row.password_hash),
   };
 }
 
@@ -76,7 +66,7 @@ export async function GET(request: Request) {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("clinics")
-      .select("id,name,slug,is_active,created_at,updated_at,access_token,access_token_hash")
+      .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
       .order("created_at", { ascending: false })
       .returns<ClinicAdminRow[]>();
 
@@ -132,8 +122,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const clinicAccessToken = generateClinicToken();
-
   try {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
@@ -141,23 +129,24 @@ export async function POST(request: Request) {
       .insert({
         name,
         slug,
-        access_token: null,
-        access_token_hash: hashClinicToken(clinicAccessToken),
         is_active: true,
       })
-      .select("id,name,slug,is_active,created_at,updated_at,access_token,access_token_hash")
+      .select("id,name,slug,is_active,created_at,updated_at,username,password_hash")
       .single<ClinicAdminRow>();
 
-    if (error) {
+    if (error || !data) {
       return NextResponse.json(
         { error: "No se pudo crear la clinica. Revisá si el slug ya existe." },
         { status: 400 }
       );
     }
 
+    const credentials = await setClinicCredentials(slug);
+
     return NextResponse.json({
-      clinic: mapClinic(data),
-      clinicAccessToken,
+      clinic: { ...mapClinic(data), hasLogin: true },
+      clinicUsername: credentials.username,
+      clinicPassword: credentials.password,
     });
   } catch {
     return NextResponse.json(
