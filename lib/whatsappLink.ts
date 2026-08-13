@@ -5,3 +5,9 @@ export function buildClinicWhatsappUrl(slug: string) {
 
   return `https://wa.me/${FRONTERA_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
+
+export function buildGeneralWhatsappUrl() {
+  const message = "Hola, quiero hacer mi pre-triaje";
+
+  return `https://wa.me/${FRONTERA_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}

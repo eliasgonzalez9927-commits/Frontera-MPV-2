@@ -28,6 +28,25 @@ const tabs = [
   { href: "/clinica/equipo", label: "Equipo" },
 ];
 
+const pageLabels: Record<string, string> = {
+  "/clinica/dashboard": "Dashboard",
+  "/clinica/qr": "QR de guardia",
+  "/clinica/equipo": "Equipo",
+};
+
+function getCurrentPageLabel(pathname: string) {
+  if (pageLabels[pathname]) {
+    return pageLabels[pathname];
+  }
+
+  const caseMatch = pathname.match(/^\/clinica\/casos\/(.+)$/);
+  if (caseMatch) {
+    return `Caso ${decodeURIComponent(caseMatch[1])}`;
+  }
+
+  return "";
+}
+
 export function ClinicShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -35,6 +54,7 @@ export function ClinicShell({ children }: { children: ReactNode }) {
   const clinicName = useClinicName(clinicSlug);
   const isSuperAdminSession = useIsSuperAdminSession();
   const query = clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : "";
+  const currentPageLabel = getCurrentPageLabel(pathname);
 
   return (
     <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
@@ -47,6 +67,35 @@ export function ClinicShell({ children }: { children: ReactNode }) {
             >
               ← {isSuperAdminSession ? "Volver al panel de admin" : "Volver"}
             </Link>
+
+            {isSuperAdminSession && (
+              <nav
+                aria-label="breadcrumb"
+                className="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400"
+              >
+                <Link href="/admin/clinicas" className="hover:text-slate-200 hover:underline">
+                  Admin
+                </Link>
+                {clinicSlug && (
+                  <>
+                    <span>/</span>
+                    <Link
+                      href={`/clinica/dashboard${query}`}
+                      className="hover:text-slate-200 hover:underline"
+                    >
+                      {clinicName || clinicSlug}
+                    </Link>
+                  </>
+                )}
+                {currentPageLabel && (
+                  <>
+                    <span>/</span>
+                    <span className="text-slate-300">{currentPageLabel}</span>
+                  </>
+                )}
+              </nav>
+            )}
+
             <p className="mt-3 font-brand text-2xl font-bold tracking-tight">
               {clinicName || (clinicSlug ? `Clínica: ${clinicSlug}` : "Frontera")}
             </p>
