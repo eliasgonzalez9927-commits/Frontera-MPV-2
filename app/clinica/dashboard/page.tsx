@@ -13,8 +13,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Priority } from "@/lib/triage";
 import {
-  getCaseOriginLabel,
-  formatCaseTime,
   sortTriageCases,
   statusLabels,
   type CaseStatus,
@@ -75,16 +73,85 @@ const filters: { value: CaseFilter; label: string }[] = [
   { value: "attended", label: "Atendidos" },
 ];
 
-function priorityClass(priority: Priority) {
-  const classes: Record<Priority, string> = {
-    ROJO: "border-red-300/40 bg-red-500/20 text-red-100",
-    NARANJA: "border-orange-300/40 bg-orange-500/20 text-orange-100",
-    AMARILLO: "border-yellow-300/40 bg-yellow-500/20 text-yellow-100",
-    VERDE: "border-green-300/40 bg-green-500/20 text-green-100",
-    AZUL: "border-sky-300/40 bg-sky-500/20 text-sky-100",
-  };
+const priorityAccent: Record<
+  Priority,
+  { border: string; badgeBg: string; badgeText: string; dotBg: string; avatarBg: string; avatarText: string }
+> = {
+  ROJO: {
+    border: "border-l-red-500",
+    badgeBg: "bg-red-500/15",
+    badgeText: "text-red-200",
+    dotBg: "bg-red-500",
+    avatarBg: "bg-red-500/15",
+    avatarText: "text-red-100",
+  },
+  NARANJA: {
+    border: "border-l-orange-500",
+    badgeBg: "bg-orange-500/15",
+    badgeText: "text-orange-200",
+    dotBg: "bg-orange-500",
+    avatarBg: "bg-orange-500/15",
+    avatarText: "text-orange-100",
+  },
+  AMARILLO: {
+    border: "border-l-yellow-400",
+    badgeBg: "bg-yellow-400/15",
+    badgeText: "text-yellow-200",
+    dotBg: "bg-yellow-400",
+    avatarBg: "bg-yellow-400/15",
+    avatarText: "text-yellow-100",
+  },
+  VERDE: {
+    border: "border-l-[#52d6c4]",
+    badgeBg: "bg-[#52d6c4]/15",
+    badgeText: "text-[#9df3e9]",
+    dotBg: "bg-[#52d6c4]",
+    avatarBg: "bg-[#52d6c4]/15",
+    avatarText: "text-[#9df3e9]",
+  },
+  AZUL: {
+    border: "border-l-sky-500",
+    badgeBg: "bg-sky-500/15",
+    badgeText: "text-sky-200",
+    dotBg: "bg-sky-500",
+    avatarBg: "bg-sky-500/15",
+    avatarText: "text-sky-100",
+  },
+};
 
-  return classes[priority];
+function getInitial(label: string) {
+  return label.trim().charAt(0).toUpperCase() || "?";
+}
+
+function formatElapsed(createdAt: string) {
+  const minutes = Math.max(
+    0,
+    Math.round((Date.now() - Date.parse(createdAt)) / 60000)
+  );
+
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours} h ${remainingMinutes} min`;
+}
+
+// Cases attended more than this long ago drop out of the default "Todos"
+// view so the board doesn't fill up with old resolved cases — full history
+// stays one click away under the "Atendidos" filter. Uses createdAt (no
+// dedicated "attended at" timestamp exists yet), so it's an approximation
+// good enough for tidying the live view, not for medical-record timing.
+const ARCHIVE_AFTER_HOURS = 24;
+
+function isRecentlyAttended(item: TriageCase) {
+  if (item.status !== "attended") {
+    return true;
+  }
+
+  const hoursSinceCreated = (Date.now() - Date.parse(item.createdAt)) / 3600000;
+  return hoursSinceCreated <= ARCHIVE_AFTER_HOURS;
 }
 
 function ClinicDashboardContent() {
@@ -272,20 +339,23 @@ function ClinicDashboardContent() {
     return () => window.clearInterval(interval);
   }, [token, loadCases]);
 
-  const counters = useMemo(
-    () => ({
-      waiting: cases.filter((item) => item.status === "waiting").length,
-      in_review: cases.filter((item) => item.status === "in_review").length,
+  const priorityCounters = useMemo(() => {
+    const active = cases.filter((item) => item.status !== "attended");
+    return {
+      rojo: active.filter((item) => item.priority === "ROJO" || item.priority === "NARANJA")
+        .length,
+      amarillo: active.filter((item) => item.priority === "AMARILLO").length,
+      verde: active.filter((item) => item.priority === "VERDE" || item.priority === "AZUL")
+        .length,
       attended: cases.filter((item) => item.status === "attended").length,
-    }),
-    [cases]
-  );
+    };
+  }, [cases]);
 
   const visibleCases = useMemo(() => {
     const sortedCases = sortTriageCases(cases);
 
     if (selectedFilter === "all") {
-      return sortedCases;
+      return sortedCases.filter(isRecentlyAttended);
     }
 
     return sortedCases.filter((item) => item.status === selectedFilter);
@@ -456,12 +526,42 @@ function ClinicDashboardContent() {
         )}
 
         {token && clinicSlug && (
-          <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-                <span>En espera: {counters.waiting}</span>
-                <span>En revisión: {counters.in_review}</span>
-                <span>Atendidos: {counters.attended}</span>
+          <div className="mt-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border-l-4 border-l-red-500 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-400">Rojo</p>
+                <p className="mt-1 text-2xl font-semibold">{priorityCounters.rojo}</p>
+              </div>
+              <div className="rounded-lg border-l-4 border-l-yellow-400 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-400">Amarillo</p>
+                <p className="mt-1 text-2xl font-semibold">{priorityCounters.amarillo}</p>
+              </div>
+              <div className="rounded-lg border-l-4 border-l-[#52d6c4] bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-400">Verde</p>
+                <p className="mt-1 text-2xl font-semibold">{priorityCounters.verde}</p>
+              </div>
+              <div className="rounded-lg border-l-4 border-l-white/20 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-400">Atendidos</p>
+                <p className="mt-1 text-2xl font-semibold">{priorityCounters.attended}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {filters.map((filter) => (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    onClick={() => setSelectedFilter(filter.value)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      selectedFilter === filter.value
+                        ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
+                        : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
               </div>
               <button
                 type="button"
@@ -473,72 +573,64 @@ function ClinicDashboardContent() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {filters.map((filter) => (
-                <button
-                  key={filter.value}
-                  type="button"
-                  onClick={() => setSelectedFilter(filter.value)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    selectedFilter === filter.value
-                      ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
-                      : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+            {selectedFilter === "all" && priorityCounters.attended > 0 && (
+              <p className="mt-3 text-xs text-slate-500">
+                Los atendidos hace más de 24 h no se muestran acá — mirá la
+                pestaña &quot;Atendidos&quot; para el historial completo.
+              </p>
+            )}
           </div>
         )}
 
         {isLoading && <p className="mt-8 text-slate-300">Cargando casos...</p>}
 
-        <div className="mt-8 grid gap-4">
-          {visibleCases.map((item) => (
-            <article
-              key={item.caseCode}
-              className="grid gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 md:grid-cols-[160px_1fr_170px]"
-            >
-              <div>
-                <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${priorityClass(
-                    item.priority
-                  )}`}
-                >
-                  {item.priority}
-                </span>
-                <p className="mt-3 text-sm text-slate-400">
-                  {formatCaseTime(item.createdAt)}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-300">
-                  {statusLabels[item.status]}
-                </p>
-              </div>
+        <div className="mt-6 overflow-hidden rounded-lg border border-white/10">
+          {visibleCases.length === 0 && !isLoading && token && clinicSlug && (
+            <p className="p-5 text-sm text-slate-400">No hay casos para mostrar.</p>
+          )}
 
-              <div>
-                <h2 className="text-xl font-black">{item.chiefComplaint}</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  {item.patientLabel}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
-                  Origen: {getCaseOriginLabel(item)}
-                </p>
-                <p className="mt-3 text-slate-300">{item.recommendation}</p>
-              </div>
+          {visibleCases.map((item) => {
+            const accent = priorityAccent[item.priority];
 
-              <div className="flex items-start justify-end">
-                <Link
-                  href={`/clinica/casos/${item.caseCode}${
-                    clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
-                  }`}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+            return (
+              <Link
+                key={item.caseCode}
+                href={`/clinica/casos/${item.caseCode}${
+                  clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
+                }`}
+                className={`flex items-center gap-4 border-b border-l-4 border-white/5 bg-white/[0.02] px-4 py-3 transition last:border-b-0 hover:bg-white/[0.06] ${accent.border}`}
+              >
+                <div
+                  className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${accent.avatarBg} ${accent.avatarText}`}
                 >
-                  Ver resumen
-                </Link>
-              </div>
-            </article>
-          ))}
+                  {getInitial(item.patientLabel)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{item.patientLabel}</span>
+                    <span
+                      className={`rounded px-2 py-0.5 text-xs font-semibold ${accent.badgeBg} ${accent.badgeText}`}
+                    >
+                      {item.title}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-sm text-slate-400">
+                    {item.chiefComplaint}
+                  </p>
+                </div>
+
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-sm font-semibold text-slate-200">
+                    {formatElapsed(item.createdAt)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {statusLabels[item.status]}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </main>
