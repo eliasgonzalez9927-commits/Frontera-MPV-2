@@ -118,7 +118,7 @@ export function createClinicSessionToken(
 ) {
   const expiresAt = Math.floor(Date.now() / 1000) + clinicSessionTtlSeconds;
   const payload = base64UrlEncode(
-    JSON.stringify({ sub: username, clinic: slug, role, exp: expiresAt })
+    JSON.stringify({ sub: username, clinic: slug, role, typ: "clinic", exp: expiresAt })
   );
   const signature = sign(payload);
 
@@ -367,7 +367,13 @@ export async function validateClinicAccessBySlug(
     return { ok: false, status: 401, message: "Sesion de clinica invalida." };
   }
 
-  let session: { sub?: unknown; clinic?: unknown; role?: unknown; exp?: unknown };
+  let session: {
+    sub?: unknown;
+    clinic?: unknown;
+    role?: unknown;
+    typ?: unknown;
+    exp?: unknown;
+  };
 
   try {
     session = JSON.parse(base64UrlDecode(payload));
@@ -376,6 +382,7 @@ export async function validateClinicAccessBySlug(
   }
 
   if (
+    session.typ !== "clinic" ||
     typeof session.clinic !== "string" ||
     session.clinic !== normalizedSlug ||
     typeof session.sub !== "string" ||

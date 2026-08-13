@@ -67,6 +67,10 @@ export function createAdminSessionToken(username: string) {
   const payload = base64UrlEncode(
     JSON.stringify({
       sub: username,
+      // Explicit type claim — without this, a clinic session token signed
+      // with the same fallback secret would also pass admin validation
+      // (same sub/exp shape). This happened in production; do not remove.
+      typ: "admin",
       exp: expiresAt,
     })
   );
@@ -117,11 +121,13 @@ export function validateAdminAuthorization(request: Request) {
   try {
     const session = JSON.parse(base64UrlDecode(payload)) as {
       sub?: unknown;
+      typ?: unknown;
       exp?: unknown;
     };
 
     if (
       typeof session.sub !== "string" ||
+      session.typ !== "admin" ||
       typeof session.exp !== "number" ||
       session.exp < Math.floor(Date.now() / 1000)
     ) {
