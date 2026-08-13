@@ -106,6 +106,14 @@ function ClinicDashboardContent() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [clinicName, setClinicName] = useState("");
+  const isSuperAdminSession =
+    typeof window !== "undefined" &&
+    Boolean(token) &&
+    sessionStorage.getItem("frontera-admin-session") === token;
+  const [pickerClinics, setPickerClinics] = useState<
+    Array<{ slug: string; name: string; isActive: boolean }>
+  >([]);
+  const [isPickerLoading, setIsPickerLoading] = useState(false);
   const [cases, setCases] = useState<TriageCase[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -166,7 +174,7 @@ function ClinicDashboardContent() {
   }, [clinicSlug]);
 
   const loadCases = useCallback(async () => {
-    if (!token) {
+    if (!token || !clinicSlug) {
       return;
     }
 
@@ -213,6 +221,36 @@ function ClinicDashboardContent() {
       setIsLoading(false);
     }
   }, [clinicSlug, token, playNewCaseAlert]);
+
+  useEffect(() => {
+    if (!isSuperAdminSession || clinicSlug) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setIsPickerLoading(true);
+      fetch("/api/admin/clinics", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (active && payload?.clinics) {
+            setPickerClinics(payload.clinics);
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setIsPickerLoading(false);
+          }
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [isSuperAdminSession, clinicSlug, token]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -296,8 +334,11 @@ function ClinicDashboardContent() {
       <section className="mx-auto max-w-6xl">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <Link href="/" className="text-sm text-[#9df3e9]">
-              ← Volver
+            <Link
+              href={isSuperAdminSession ? "/admin/clinicas" : "/"}
+              className="text-sm text-[#9df3e9]"
+            >
+              ← {isSuperAdminSession ? "Volver al panel de admin" : "Volver"}
             </Link>
             <h1 className="mt-4 text-4xl font-black tracking-tight">
               Casos en espera
@@ -305,7 +346,7 @@ function ClinicDashboardContent() {
             <p className="mt-2 text-slate-300">
               {clinicSlug
                 ? clinicName || `Clínica: ${clinicSlug}`
-                : "Vista general de casos en espera"}
+                : "Elegí una clínica para ver sus casos"}
             </p>
           </div>
 
@@ -329,6 +370,44 @@ function ClinicDashboardContent() {
             )}
           </div>
         </header>
+
+        {isSuperAdminSession && !clinicSlug && (
+          <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+            <h2 className="text-xl font-black">Elegí una clínica</h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Estás con tu sesión de super admin — elegí a cuál clínica querés
+              entrar.
+            </p>
+
+            {isPickerLoading && (
+              <p className="mt-4 text-sm text-slate-300">Cargando clínicas...</p>
+            )}
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {pickerClinics.map((clinic) => (
+                <Link
+                  key={clinic.slug}
+                  href={`/clinica/dashboard?clinic=${encodeURIComponent(clinic.slug)}`}
+                  className="rounded-2xl border border-white/10 bg-[#0d2530] p-4 transition hover:bg-white/10"
+                >
+                  <p className="font-bold">{clinic.name}</p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {clinic.isActive ? "Activa" : "Inactiva"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            {!isPickerLoading && pickerClinics.length === 0 && (
+              <p className="mt-4 text-sm text-slate-300">
+                No hay clínicas creadas todavía.{" "}
+                <Link href="/admin/clinicas" className="font-bold underline">
+                  Crear una
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
 
         {!token && (
           <form
@@ -376,7 +455,7 @@ function ClinicDashboardContent() {
           </div>
         )}
 
-        {token && (
+        {token && clinicSlug && (
           <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-3 text-sm text-slate-300">
