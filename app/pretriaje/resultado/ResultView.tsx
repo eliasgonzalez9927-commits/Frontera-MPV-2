@@ -46,9 +46,9 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
     getOrientationMessage(caseData.priority);
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-4xl">
-        <Link href="/pretriaje" className="text-sm text-[#9df3e9]">
+        <Link href="/pretriaje" className="text-sm text-[#00C9A7]">
           ← Nuevo pre-triaje
         </Link>
 
@@ -96,10 +96,10 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
             className={`mt-8 rounded-[2rem] border p-6 ${
               isRedProtocol
                 ? "border-red-300/40 bg-red-500/15"
-                : "border-[#52d6c4]/30 bg-[#52d6c4]/10"
+                : "border-[#00C9A7]/30 bg-[#00C9A7]/10"
             }`}
           >
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#9df3e9]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#00C9A7]">
               Orientación general
             </p>
             <h2 className="mt-3 text-2xl font-black">
@@ -149,13 +149,13 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
           )}
 
           <section className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
-            <p className="text-sm font-semibold text-[#9df3e9]">
+            <p className="text-sm font-semibold text-[#00C9A7]">
               Resumen para el equipo médico
             </p>
 
             <div className="mt-5 space-y-4">
-              <div className="rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4">
-                <p className="text-sm text-[#9df3e9]">Pase Digital Frontera</p>
+              <div className="rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4">
+                <p className="text-sm text-[#00C9A7]">Pase Digital Frontera</p>
                 <p className="mt-1 text-3xl font-black tracking-wide text-white">
                   {caseData.caseCode}
                 </p>
@@ -165,24 +165,24 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">Prioridad estimada</p>
                   <p className="mt-1 font-semibold">
                     {caseData.priority} · {getPriorityLabel(caseData.priority)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">Origen</p>
                   <p className="mt-1 font-semibold">{originLabel}</p>
                 </div>
 
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">Fecha y hora</p>
                   <p className="mt-1 font-semibold">{createdAt}</p>
                 </div>
 
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">Paciente</p>
                   <p className="mt-1 font-semibold">
                     {caseData.patientLabel}
@@ -190,21 +190,21 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Motivo de consulta</p>
                 <p className="mt-1 font-semibold">
                   {caseData.handover.motivo}
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Tiempo de evolución</p>
                 <p className="mt-1 font-semibold">
                   {caseData.handover.evolucion || "No informado"}
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">
                   {isRedProtocol
                     ? "Señales críticas detectadas"
@@ -217,7 +217,7 @@ export default function ResultView({ caseData, notice }: ResultViewProps) {
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Síntomas adicionales</p>
                 <p className="mt-1 font-semibold">
                   {caseData.handover.sintomasAdicionales.length > 0

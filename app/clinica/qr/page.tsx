@@ -83,13 +83,13 @@ function ClinicQrContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-3xl">
         <Link
           href={`/clinica/dashboard${
             clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
           }`}
-          className="text-sm text-[#9df3e9]"
+          className="text-sm text-[#00C9A7]"
         >
           ← Volver al dashboard
         </Link>
@@ -102,7 +102,7 @@ function ClinicQrContent() {
             </div>
           ) : (
             <div>
-              <p className="text-sm font-semibold text-[#9df3e9]">
+              <p className="text-sm font-semibold text-[#00C9A7]">
                 {clinic?.name || "Cargando clínica..."}
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight">
@@ -113,7 +113,7 @@ function ClinicQrContent() {
                 pre-triaje por WhatsApp, hablando con Frontera.
               </p>
 
-              <div className="mt-8 flex flex-col items-center gap-5 rounded-[1.5rem] bg-white p-6 text-[#071923]">
+              <div className="mt-8 flex flex-col items-center gap-5 rounded-[1.5rem] bg-white p-6 text-[#071826]">
                 {whatsappUrl && (
                   <QRCodeSVG
                     value={whatsappUrl}
@@ -139,7 +139,7 @@ function ClinicQrContent() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="rounded-2xl bg-[#52d6c4] px-5 py-3 text-sm font-bold text-[#071923]"
+                  className="rounded-2xl bg-[#00C9A7] px-5 py-3 text-sm font-bold text-[#071826]"
                 >
                   Imprimir QR
                 </button>

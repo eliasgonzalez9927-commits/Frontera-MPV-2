@@ -206,16 +206,16 @@ function PreTriageWizard() {
       : undefined;
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-3xl">
-        <Link href="/" className="text-sm text-[#9df3e9]">
+        <Link href="/" className="text-sm text-[#00C9A7]">
           ← Volver
         </Link>
 
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-semibold text-[#9df3e9]">{headerTitle}</p>
-            <span className="rounded-full border border-[#52d6c4]/30 bg-[#52d6c4]/10 px-3 py-1 text-xs font-bold text-[#9df3e9]">
+            <p className="text-sm font-semibold text-[#00C9A7]">{headerTitle}</p>
+            <span className="rounded-full border border-[#00C9A7]/30 bg-[#00C9A7]/10 px-3 py-1 text-xs font-bold text-[#00C9A7]">
               {sourceLabel}
             </span>
             {entryMode && !hasClinic && (
@@ -284,7 +284,7 @@ function PreTriageWizard() {
                 value={motivo}
                 onChange={(event) => setMotivo(event.target.value)}
                 placeholder="Ej: Me duele fuerte el abdomen desde hace unas horas..."
-                className="min-h-36 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none ring-[#52d6c4]/40 placeholder:text-slate-500 focus:ring-4"
+                className="min-h-36 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none ring-[#00C9A7]/40 placeholder:text-slate-500 focus:ring-4"
               />
             </QuestionBlock>
           )}
@@ -305,7 +305,7 @@ function PreTriageWizard() {
 
           {step === 5 && (
             <QuestionBlock title="Del 1 al 10, ¿qué intensidad tiene?">
-              <p className="text-5xl font-black text-[#52d6c4]">{intensidad}</p>
+              <p className="text-5xl font-black text-[#00C9A7]">{intensidad}</p>
               <input
                 type="range"
                 min="1"
@@ -353,8 +353,8 @@ function PreTriageWizard() {
                 </RedAlert>
               )}
               {orientationIntent && (
-                <div className="rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4 text-sm leading-6 text-slate-100">
-                  <p className="font-black text-[#9df3e9]">Orientación general</p>
+                <div className="rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4 text-sm leading-6 text-slate-100">
+                  <p className="font-black text-[#00C9A7]">Orientación general</p>
                   <p className="mt-2">{orientationMessage}</p>
                 </div>
               )}
@@ -397,7 +397,7 @@ function PreTriageWizard() {
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]"
+                className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826]"
               >
                 {step === 0 ? "Empezar" : "Continuar"}
               </button>
@@ -406,7 +406,7 @@ function PreTriageWizard() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={createCase}
-                className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? "Creando caso..." : "Crear pre-triaje"}
               </button>
@@ -460,7 +460,7 @@ function ChoiceButton({
       onClick={onClick}
       className={`rounded-2xl border px-5 py-4 text-left font-bold transition ${
         active
-          ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
+          ? "border-[#00C9A7] bg-[#00C9A7] text-[#071826]"
           : "border-white/10 bg-white/5 text-white hover:bg-white/10"
       }`}
     >
@@ -479,7 +479,7 @@ function RedAlert({ children }: { children: ReactNode }) {
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#0d2530] p-4">
+    <div className="rounded-2xl bg-[#102638] p-4">
       <p className="text-sm text-slate-400">{label}</p>
       <p className="mt-1 font-semibold">{value}</p>
     </div>

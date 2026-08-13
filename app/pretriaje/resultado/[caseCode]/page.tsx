@@ -59,7 +59,7 @@ export default function TriageResultPage({ params }: PageProps) {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#071923] px-6 text-white">
+    <main className="grid min-h-screen place-items-center bg-[#071826] px-6 text-white">
       <div className="max-w-xl rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center">
         <h1 className="text-3xl font-black">
           {error ? "No pudimos cargar el caso" : "Cargando caso"}
@@ -69,7 +69,7 @@ export default function TriageResultPage({ params }: PageProps) {
         </p>
         <Link
           href="/pretriaje"
-          className="mt-6 inline-flex rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923]"
+          className="mt-6 inline-flex rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826]"
         >
           Iniciar nuevo pre-triaje
         </Link>

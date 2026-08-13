@@ -142,9 +142,9 @@ function ClinicTeamContent() {
   }`;
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-3xl">
-        <Link href={dashboardHref} className="text-sm text-[#9df3e9]">
+        <Link href={dashboardHref} className="text-sm text-[#00C9A7]">
           ← Volver al dashboard
         </Link>
 
@@ -173,27 +173,27 @@ function ClinicTeamContent() {
                   value={newUsername}
                   onChange={(event) => setNewUsername(event.target.value)}
                   placeholder="usuario"
-                  className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                  className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
                 />
                 <select
                   value={newRole}
                   onChange={(event) =>
                     setNewRole(event.target.value as "admin" | "staff")
                   }
-                  className="rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                  className="rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
                 >
                   <option value="staff">Personal</option>
                   <option value="admin">Admin de la clínica</option>
                 </select>
-                <button className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923]">
+                <button className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826]">
                   Crear
                 </button>
               </div>
             </form>
 
             {freshCredentials && (
-              <div className="mt-4 rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4">
-                <p className="text-sm font-semibold text-[#9df3e9]">
+              <div className="mt-4 rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4">
+                <p className="text-sm font-semibold text-[#00C9A7]">
                   Cuenta lista — guardá esto ahora, la contraseña no se vuelve a
                   mostrar
                 </p>
@@ -220,7 +220,7 @@ function ClinicTeamContent() {
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="flex flex-col justify-between gap-3 rounded-2xl border border-white/10 bg-[#0d2530] p-4 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-3 rounded-2xl border border-white/10 bg-[#102638] p-4 sm:flex-row sm:items-center"
                 >
                   <div>
                     <p className="font-bold">{user.username}</p>

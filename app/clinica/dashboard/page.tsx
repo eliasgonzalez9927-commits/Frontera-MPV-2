@@ -102,12 +102,12 @@ const priorityAccent: Record<
     avatarText: "text-yellow-100",
   },
   VERDE: {
-    border: "border-l-[#52d6c4]",
-    badgeBg: "bg-[#52d6c4]/15",
-    badgeText: "text-[#9df3e9]",
-    dotBg: "bg-[#52d6c4]",
-    avatarBg: "bg-[#52d6c4]/15",
-    avatarText: "text-[#9df3e9]",
+    border: "border-l-[#00C9A7]",
+    badgeBg: "bg-[#00C9A7]/15",
+    badgeText: "text-[#00C9A7]",
+    dotBg: "bg-[#00C9A7]",
+    avatarBg: "bg-[#00C9A7]/15",
+    avatarText: "text-[#00C9A7]",
   },
   AZUL: {
     border: "border-l-sky-500",
@@ -400,13 +400,13 @@ function ClinicDashboardContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-6xl">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <Link
               href={isSuperAdminSession ? "/admin/clinicas" : "/"}
-              className="text-sm text-[#9df3e9]"
+              className="text-sm text-[#00C9A7]"
             >
               ← {isSuperAdminSession ? "Volver al panel de admin" : "Volver"}
             </Link>
@@ -425,7 +425,7 @@ function ClinicDashboardContent() {
             {clinicSlug && (
               <Link
                 href={`/clinica/qr?clinic=${encodeURIComponent(clinicSlug)}`}
-                className="ml-3 font-bold text-[#9df3e9] underline-offset-4 hover:underline"
+                className="ml-3 font-bold text-[#00C9A7] underline-offset-4 hover:underline"
               >
                 Ver QR de guardia
               </Link>
@@ -433,7 +433,7 @@ function ClinicDashboardContent() {
             {clinicSlug && (
               <Link
                 href={`/clinica/equipo?clinic=${encodeURIComponent(clinicSlug)}`}
-                className="ml-3 font-bold text-[#9df3e9] underline-offset-4 hover:underline"
+                className="ml-3 font-bold text-[#00C9A7] underline-offset-4 hover:underline"
               >
                 Equipo
               </Link>
@@ -458,7 +458,7 @@ function ClinicDashboardContent() {
                 <Link
                   key={clinic.slug}
                   href={`/clinica/dashboard?clinic=${encodeURIComponent(clinic.slug)}`}
-                  className="rounded-2xl border border-white/10 bg-[#0d2530] p-4 transition hover:bg-white/10"
+                  className="rounded-2xl border border-white/10 bg-[#102638] p-4 transition hover:bg-white/10"
                 >
                   <p className="font-bold">{clinic.name}</p>
                   <p className="mt-1 text-sm text-slate-400">
@@ -491,7 +491,7 @@ function ClinicDashboardContent() {
               value={usernameInput}
               onChange={(event) => setUsernameInput(event.target.value)}
               autoComplete="username"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
             />
 
             <label className="mt-4 block text-sm font-semibold text-slate-200">
@@ -502,12 +502,12 @@ function ClinicDashboardContent() {
               value={passwordInput}
               onChange={(event) => setPasswordInput(event.target.value)}
               autoComplete="current-password"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
             />
 
             <button
               disabled={isLoggingIn}
-              className="mt-4 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-4 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isLoggingIn ? "Entrando..." : "Entrar"}
             </button>
@@ -536,7 +536,7 @@ function ClinicDashboardContent() {
                 <p className="text-xs text-slate-400">Amarillo</p>
                 <p className="mt-1 text-2xl font-semibold">{priorityCounters.amarillo}</p>
               </div>
-              <div className="rounded-lg border-l-4 border-l-[#52d6c4] bg-white/5 px-4 py-3">
+              <div className="rounded-lg border-l-4 border-l-[#00C9A7] bg-white/5 px-4 py-3">
                 <p className="text-xs text-slate-400">Verde</p>
                 <p className="mt-1 text-2xl font-semibold">{priorityCounters.verde}</p>
               </div>
@@ -555,7 +555,7 @@ function ClinicDashboardContent() {
                     onClick={() => setSelectedFilter(filter.value)}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                       selectedFilter === filter.value
-                        ? "border-[#52d6c4] bg-[#52d6c4] text-[#071923]"
+                        ? "border-[#00C9A7] bg-[#00C9A7] text-[#071826]"
                         : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
                     }`}
                   >

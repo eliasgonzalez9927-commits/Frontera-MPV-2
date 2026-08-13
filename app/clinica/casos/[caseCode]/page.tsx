@@ -202,9 +202,9 @@ function ClinicCaseDetailContent({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-4xl">
-        <Link href={dashboardHref} className="text-sm text-[#9df3e9]">
+        <Link href={dashboardHref} className="text-sm text-[#00C9A7]">
           ← Volver al dashboard
         </Link>
 
@@ -221,7 +221,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
               value={usernameInput}
               onChange={(event) => setUsernameInput(event.target.value)}
               autoComplete="username"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
             />
 
             <label className="mt-4 block text-sm font-semibold text-slate-200">
@@ -233,13 +233,13 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                 value={passwordInput}
                 onChange={(event) => setPasswordInput(event.target.value)}
                 autoComplete="current-password"
-                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
               />
               <button
                 type="button"
                 disabled={isLoggingIn}
                 onClick={handleLoginSubmit}
-                className="rounded-2xl bg-[#52d6c4] px-5 py-3 font-bold text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isLoggingIn ? "Entrando..." : "Entrar"}
               </button>
@@ -273,7 +273,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                   Código de caso: <span className="font-semibold text-white">{caseData.caseCode}</span>
                 </p>
                 {caseData.clinicName && (
-                  <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
+                  <p className="mt-2 text-sm font-semibold text-[#00C9A7]">
                     {caseData.clinicName}
                   </p>
                 )}
@@ -295,7 +295,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                     type="button"
                     disabled={isUpdating}
                     onClick={() => updateStatus("attended")}
-                    className="rounded-2xl bg-[#52d6c4] px-4 py-2 text-sm font-bold text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="rounded-2xl bg-[#00C9A7] px-4 py-2 text-sm font-bold text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     Marcar atendido
                   </button>
@@ -310,25 +310,25 @@ function ClinicCaseDetailContent({ params }: PageProps) {
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Prioridad</p>
                 <p className="mt-1 font-semibold">
                   {caseData.priority} · {caseData.title}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Estado</p>
                 <p className="mt-1 font-semibold">
                   {statusLabels[caseData.status]}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Origen</p>
                 <p className="mt-1 font-semibold">
                   {getCaseOriginLabel(caseData)}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Fecha y hora</p>
                 <p className="mt-1 font-semibold">
                   {formatCaseDate(caseData.createdAt)}
@@ -337,25 +337,25 @@ function ClinicCaseDetailContent({ params }: PageProps) {
             </div>
 
             <div className="mt-4 space-y-4">
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Motivo</p>
                 <p className="mt-1 font-semibold">
                   {caseData.chiefComplaint}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Obra social / prepaga</p>
                 <p className="mt-1 font-semibold">
                   {conversationHandover?.obraSocial || "No informado"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Evolución</p>
                 <p className="mt-1 font-semibold">
                   {caseData.evolution || "No informado"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Síntomas</p>
                 <p className="mt-1 font-semibold">
                   {caseData.symptoms.length > 0
@@ -363,7 +363,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                     : "No informados"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Señales detectadas</p>
                 <p className="mt-1 font-semibold">
                   {caseData.redSignals.length > 0
@@ -371,14 +371,14 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                     : "Sin señales rojas detectadas"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#0d2530] p-4">
+              <div className="rounded-2xl bg-[#102638] p-4">
                 <p className="text-sm text-slate-400">Recomendación</p>
                 <p className="mt-1 font-semibold">
                   {caseData.recommendation}
                 </p>
               </div>
               {conversationHandover?.patientContext && (
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">Completado para</p>
                   <p className="mt-1 font-semibold">
                     {conversationHandover.patientContext === "self"
@@ -388,8 +388,8 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                 </div>
               )}
               {conversationHandover?.orientationIntent && (
-                <div className="rounded-2xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-4">
-                  <p className="text-sm text-[#9df3e9]">
+                <div className="rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4">
+                  <p className="text-sm text-[#00C9A7]">
                     Orientación general
                   </p>
                   <p className="mt-1 font-semibold">
@@ -399,7 +399,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                 </div>
               )}
               {conversationHandover?.estimatedPriorityReason && (
-                <div className="rounded-2xl bg-[#0d2530] p-4">
+                <div className="rounded-2xl bg-[#102638] p-4">
                   <p className="text-sm text-slate-400">
                     Motivo de prioridad estimada
                   </p>
@@ -410,7 +410,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
               )}
               {conversationHandover?.redFlagAnswers &&
                 conversationHandover.redFlagAnswers.length > 0 && (
-                  <div className="rounded-2xl bg-[#0d2530] p-4">
+                  <div className="rounded-2xl bg-[#102638] p-4">
                     <p className="text-sm text-slate-400">
                       Respuestas de señales rojas
                     </p>

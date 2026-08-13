@@ -267,15 +267,15 @@ export default function AdminClinicsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#071923] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
       <section className="mx-auto max-w-6xl">
-        <Link href="/" className="text-sm text-[#9df3e9]">
+        <Link href="/" className="text-sm text-[#00C9A7]">
           ← Volver
         </Link>
 
         <header className="mt-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold text-[#9df3e9]">
+            <p className="text-sm font-semibold text-[#00C9A7]">
               Administracion interna
             </p>
             <h1 className="mt-2 text-4xl font-black tracking-tight">
@@ -311,7 +311,7 @@ export default function AdminClinicsPage() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
             />
 
             <label className="mt-4 block text-sm font-semibold text-slate-200">
@@ -322,9 +322,9 @@ export default function AdminClinicsPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
             />
-            <button className="mt-4 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923]">
+            <button className="mt-4 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826]">
               Entrar
             </button>
           </form>
@@ -343,7 +343,7 @@ export default function AdminClinicsPage() {
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d2530] p-4 text-white outline-none"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
                 placeholder="Ej: Clinica San Martin"
               />
               <p className="mt-3 break-all text-sm text-slate-400">
@@ -356,7 +356,7 @@ export default function AdminClinicsPage() {
               <button
                 type="submit"
                 disabled={isSaving || !previewSlug}
-                className="mt-5 w-full rounded-2xl bg-[#52d6c4] px-5 py-3 font-black text-[#071923] disabled:cursor-not-allowed disabled:opacity-70"
+                className="mt-5 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSaving ? "Creando..." : "Crear clinica"}
               </button>
@@ -444,14 +444,14 @@ function ClinicCard({
   const links = buildClinicLinks(origin, clinic.slug);
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-[#0d2530] p-4">
+    <article className="rounded-2xl border border-white/10 bg-[#102638] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-black">{clinic.name}</h3>
           <p className="mt-1 text-sm text-slate-400">
             Usuario: <span className="font-mono">{clinic.slug}</span>
           </p>
-          <p className="mt-2 text-sm font-semibold text-[#9df3e9]">
+          <p className="mt-2 text-sm font-semibold text-[#00C9A7]">
             {clinic.isActive ? "Activa" : "Inactiva"}
           </p>
         </div>
@@ -483,7 +483,7 @@ function ClinicCard({
         <button
           type="button"
           onClick={onCopyKit}
-          className="rounded-xl bg-[#52d6c4] px-3 py-2 text-xs font-bold text-[#071923]"
+          className="rounded-xl bg-[#00C9A7] px-3 py-2 text-xs font-bold text-[#071826]"
         >
           Copiar kit
         </button>
@@ -507,8 +507,8 @@ function ClinicCard({
       </div>
 
       {freshCredentials && (
-        <div className="mt-3 rounded-xl border border-[#52d6c4]/30 bg-[#52d6c4]/10 p-3">
-          <p className="text-xs font-semibold text-[#9df3e9]">
+        <div className="mt-3 rounded-xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-3">
+          <p className="text-xs font-semibold text-[#00C9A7]">
             Acceso del dashboard — guardalo ahora, la contraseña no se vuelve
             a mostrar
           </p>

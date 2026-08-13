@@ -17,17 +17,14 @@ const stats = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#071923] text-white">
+    <main className="min-h-screen bg-[#071826] text-white">
       <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-8">
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#52d6c4] font-black text-[#071923]">
-              +
-            </div>
-            <div>
-              <p className="text-lg font-semibold tracking-tight">Frontera</p>
-              <p className="text-xs text-slate-300">Pre-triaje digital</p>
-            </div>
+          <div>
+            <p className="font-brand text-xl font-bold tracking-tight">
+              FRON<span className="text-[#00C9A7]">TERA</span>
+            </p>
+            <p className="text-xs text-slate-300">Pre-triaje digital</p>
           </div>
 
           <Link
@@ -40,7 +37,7 @@ export default function Home() {
 
         <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <div className="mb-6 inline-flex rounded-full border border-[#52d6c4]/30 bg-[#52d6c4]/10 px-4 py-2 text-sm text-[#9df3e9]">
+            <div className="mb-6 inline-flex rounded-full border border-[#00C9A7]/30 bg-[#00C9A7]/10 px-4 py-2 text-sm text-[#00C9A7]">
               Online por web/WhatsApp · Offline por QR en guardia
             </div>
 
@@ -56,7 +53,7 @@ export default function Home() {
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/pretriaje"
-                className="rounded-2xl bg-[#52d6c4] px-6 py-4 text-center font-bold text-[#071923] transition hover:scale-[1.02]"
+                className="rounded-2xl bg-[#00C9A7] px-6 py-4 text-center font-bold text-[#071826] transition hover:scale-[1.02]"
               >
                 Iniciar pre-triaje
               </Link>
@@ -83,8 +80,8 @@ export default function Home() {
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/30 backdrop-blur">
-            <div className="rounded-[1.5rem] bg-[#0d2530] p-5">
-              <p className="text-sm font-semibold text-[#9df3e9]">
+            <div className="rounded-[1.5rem] bg-[#102638] p-5">
+              <p className="text-sm font-semibold text-[#00C9A7]">
                 Caso simulado
               </p>
 
@@ -121,7 +118,7 @@ export default function Home() {
               key={stat.value}
               className="rounded-3xl border border-white/10 bg-white/5 p-5"
             >
-              <p className="text-3xl font-black text-[#52d6c4]">
+              <p className="text-3xl font-black text-[#00C9A7]">
                 {stat.value}
               </p>
               <p className="mt-2 text-sm text-slate-300">{stat.label}</p>
