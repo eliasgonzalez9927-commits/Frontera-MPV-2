@@ -160,9 +160,14 @@ describe("getEstimatedPriority", () => {
     expect(getEstimatedPriority(10, [answer("yes")])).toBe("ROJO");
   });
 
-  it("returns AMARILLO when intensity >= 7 and no red flags", () => {
+  it("returns NARANJA when intensity >= 9 and no red flags", () => {
+    expect(getEstimatedPriority(9, [answer("no")])).toBe("NARANJA");
+    expect(getEstimatedPriority(10, [])).toBe("NARANJA");
+  });
+
+  it("returns AMARILLO when intensity is 7 or 8 and no red flags", () => {
     expect(getEstimatedPriority(7, [answer("no")])).toBe("AMARILLO");
-    expect(getEstimatedPriority(10, [])).toBe("AMARILLO");
+    expect(getEstimatedPriority(8, [])).toBe("AMARILLO");
   });
 
   it("returns VERDE when intensity < 7 and no red flags", () => {
@@ -178,6 +183,10 @@ describe("getEstimatedPriorityReason", () => {
 
   it("explains a non-ROJO high intensity", () => {
     expect(getEstimatedPriorityReason("AMARILLO", 8)).toMatch(/intensidad informada es alta/i);
+  });
+
+  it("explains a non-ROJO very high intensity as NARANJA", () => {
+    expect(getEstimatedPriorityReason("NARANJA", 9)).toMatch(/intensidad informada es muy alta/i);
   });
 
   it("explains a non-ROJO low/moderate intensity with no red flags", () => {

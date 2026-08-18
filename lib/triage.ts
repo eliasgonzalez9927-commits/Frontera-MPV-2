@@ -210,12 +210,25 @@ export function analyzeTriage(input: TriageInput): TriageResult {
 
   if (redSignals.length > 0) {
     priority = "ROJO";
+  } else if (intensidad >= 9) {
+    // Very severe pain but no red-flag signal — urgent, but not the
+    // immediate-life-risk tier that ROJO represents.
+    priority = "NARANJA";
   } else if (
     urgentSignals.length > 0 ||
     intensidad >= 7 ||
     hasWarningKeyword(motivo, symptoms)
   ) {
     priority = "AMARILLO";
+  } else if (
+    input.intensidad !== undefined &&
+    input.intensidad <= 2 &&
+    symptoms.length === 0
+  ) {
+    // Only classify as AZUL when a low intensity was explicitly reported
+    // (not just defaulted from a missing value) — an unset intensidad
+    // shouldn't quietly downgrade an otherwise-unassessed case.
+    priority = "AZUL";
   }
 
   return {

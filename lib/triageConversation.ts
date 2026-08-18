@@ -154,6 +154,10 @@ export function getEstimatedPriority(
     return "ROJO";
   }
 
+  if (intensity >= 9) {
+    return "NARANJA";
+  }
+
   if (intensity >= 7) {
     return "AMARILLO";
   }
@@ -167,6 +171,10 @@ export function getEstimatedPriorityReason(
 ) {
   if (priority === "ROJO") {
     return "Se informó al menos una señal roja.";
+  }
+
+  if (priority === "NARANJA") {
+    return "La intensidad informada es muy alta, sin señales rojas confirmadas.";
   }
 
   if (intensity >= 7) {

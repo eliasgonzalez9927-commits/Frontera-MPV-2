@@ -20,7 +20,7 @@ import {
   type RedFlagAnswerValue,
 } from "@/lib/triageConversation";
 
-const redFlagStartStep = 6;
+const redFlagStartStep = 7;
 const summaryStep = redFlagStartStep + redFlagQuestions.length;
 
 function PreTriageWizard() {
@@ -34,6 +34,7 @@ function PreTriageWizard() {
   const [step, setStep] = useState(0);
   const [entryMode, setEntryMode] = useState<EntryMode | "">("");
   const [patientContext, setPatientContext] = useState<PatientContext | "">("");
+  const [nombre, setNombre] = useState("");
   const [motivo, setMotivo] = useState("");
   const [evolucion, setEvolucion] = useState("");
   const [intensidad, setIntensidad] = useState(5);
@@ -75,7 +76,7 @@ function PreTriageWizard() {
     ? "clinic_qr"
     : entryMode || "onsite_unknown";
   const orientationIntent = effectiveEntryMode === "needs_orientation";
-  const totalQuestions = (hasClinic ? 4 : 5) + redFlagQuestions.length;
+  const totalQuestions = (hasClinic ? 5 : 6) + redFlagQuestions.length;
 
   const answers: RedFlagAnswer[] = useMemo(
     () =>
@@ -130,12 +131,12 @@ function PreTriageWizard() {
       return;
     }
 
-    if (step === 3 && !isUsefulChiefComplaint(motivo)) {
+    if (step === 4 && !isUsefulChiefComplaint(motivo)) {
       setError("Necesitamos una descripción más clara para poder orientarte.");
       return;
     }
 
-    if (step === 4 && !evolucion) {
+    if (step === 5 && !evolucion) {
       setError("Elegí una opción para continuar.");
       return;
     }
@@ -168,6 +169,7 @@ function PreTriageWizard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          nombre: nombre.trim(),
           motivo: motivo.trim(),
           evolucion: evolucion || "No informado",
           intensidad,
@@ -279,6 +281,22 @@ function PreTriageWizard() {
           )}
 
           {step === 3 && (
+            <QuestionBlock title="¿Cómo te llamás?">
+              <input
+                type="text"
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                placeholder="Ej: Juan Pérez (opcional)"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none ring-[#00C9A7]/40 placeholder:text-[var(--text-tertiary)] focus:ring-4"
+              />
+              <p className="text-sm text-[var(--text-tertiary)]">
+                Ayuda al equipo a identificarte en la sala de espera. Podés
+                dejarlo en blanco si preferís no darlo.
+              </p>
+            </QuestionBlock>
+          )}
+
+          {step === 4 && (
             <QuestionBlock title="¿Qué te está pasando ahora?">
               <textarea
                 value={motivo}
@@ -289,7 +307,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <QuestionBlock title="¿Desde cuándo empezó?">
               {evolutionOptions.map((option) => (
                 <ChoiceButton
@@ -303,7 +321,7 @@ function PreTriageWizard() {
             </QuestionBlock>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <QuestionBlock title="Del 1 al 10, ¿qué intensidad tiene?">
               <p className="text-5xl font-black text-[var(--accent-text)]">{intensidad}</p>
               <input
@@ -358,6 +376,7 @@ function PreTriageWizard() {
                   <p className="mt-2">{orientationMessage}</p>
                 </div>
               )}
+              <SummaryItem label="Nombre" value={nombre.trim() || "No informado"} />
               <SummaryItem label="Motivo" value={motivo} />
               <SummaryItem label="Tiempo de evolución" value={evolucion || "No informado"} />
               <SummaryItem label="Intensidad" value={`${intensidad}/10`} />

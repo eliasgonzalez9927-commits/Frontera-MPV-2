@@ -76,6 +76,41 @@ describe("analyzeTriage — priority classification", () => {
     });
     expect(result.priority).toBe("ROJO");
   });
+
+  it("escalates to NARANJA when intensidad >= 9 and there are no red signals", () => {
+    const result = analyzeTriage({ motivo: "dolor abdominal muy fuerte", intensidad: 9 });
+    expect(result.priority).toBe("NARANJA");
+  });
+
+  it("ROJO still wins over NARANJA-level intensity when a red flag is present", () => {
+    const result = analyzeTriage({
+      motivo: "dolor de pecho intenso",
+      intensidad: 10,
+    });
+    expect(result.priority).toBe("ROJO");
+  });
+
+  it("classifies AZUL when a low intensidad is explicitly reported with no other symptoms", () => {
+    const result = analyzeTriage({
+      motivo: "molestia leve en la garganta desde ayer",
+      intensidad: 2,
+    });
+    expect(result.priority).toBe("AZUL");
+  });
+
+  it("does NOT default to AZUL when intensidad is simply omitted", () => {
+    const result = analyzeTriage({ motivo: "molestia leve en la garganta" });
+    expect(result.priority).toBe("VERDE");
+  });
+
+  it("does not classify AZUL when additional symptoms were reported, even with low intensidad", () => {
+    const result = analyzeTriage({
+      motivo: "molestia leve",
+      intensidad: 1,
+      sintomas: ["picazon en la piel"],
+    });
+    expect(result.priority).toBe("VERDE");
+  });
 });
 
 describe("analyzeTriage — negation handling (regression, 2026-08-11)", () => {
