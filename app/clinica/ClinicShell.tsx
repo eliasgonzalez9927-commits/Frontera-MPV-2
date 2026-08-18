@@ -56,16 +56,24 @@ export function ClinicShell({ children }: { children: ReactNode }) {
   const query = clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : "";
   const currentPageLabel = getCurrentPageLabel(pathname);
 
+  const isOnDashboard = pathname === "/clinica/dashboard";
+  let backHref = "/";
+  let backLabel = "Volver";
+  if (isSuperAdminSession) {
+    backHref = "/admin/clinicas";
+    backLabel = "Volver al panel de admin";
+  } else if (clinicSlug && !isOnDashboard) {
+    backHref = `/clinica/dashboard${query}`;
+    backLabel = "Volver al dashboard";
+  }
+
   return (
     <main className="min-h-screen bg-[var(--surface)] px-6 py-8 text-[var(--text)]">
       <section className="mx-auto max-w-6xl">
         <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between print:hidden">
           <div>
-            <Link
-              href={isSuperAdminSession ? "/admin/clinicas" : "/"}
-              className="text-sm text-[var(--accent-text)]"
-            >
-              ← {isSuperAdminSession ? "Volver al panel de admin" : "Volver"}
+            <Link href={backHref} className="text-sm text-[var(--accent-text)]">
+              ← {backLabel}
             </Link>
 
             {isSuperAdminSession && (
