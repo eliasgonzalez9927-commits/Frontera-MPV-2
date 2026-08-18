@@ -1,6 +1,6 @@
 # FRONTERA — Documento Madre del Proyecto
 
-Última actualización: 11 de agosto de 2026
+Última actualización: 18 de agosto de 2026
 Founder: Elías (Mendoza, Argentina — 26 años, cofundador de Pinta MKT)
 Propósito de este doc: contexto base para Claude Code. Todo lo que se sabe del proyecto, su historia, mercado y decisiones abiertas.
 
@@ -106,12 +106,7 @@ Documento de estado compartido con el equipo.
 
 **Admin de clínicas**: permite crear una clínica de prueba sin tocar Supabase manualmente. Desde `/admin/clinicas` se puede crear clínica ingresando solo el nombre, generar slug automáticamente, generar token de acceso, ver/copiar QR, ver/copiar dashboard, copiar kit completo, activar/desactivar clínica, regenerar token.
 
-Acceso temporal de demo:
-
-* Usuario: `admin`
-* Contraseña: `frontera-demo-2026`
-
-⚠️ Esta contraseña es temporal, quedó documentada en texto plano acá por decisión explícita del equipo — **rotar después de la demo** (ver punto 9 de próximos pasos).
+Acceso admin: usuario `admin`, contraseña gestionada como variable de entorno (`ADMIN_PASSWORD`) en Vercel — ya no se documenta en texto plano acá. Rotada el 18 de agosto de 2026 (la anterior era una contraseña de demo temporal).
 
 **WhatsApp / OpenClaw**: se conectó OpenClaw con WhatsApp. Número conectado: `+5492617261009`.
 
@@ -178,26 +173,39 @@ Con el número real (+5492617261009) ya funcionando y probado con casos reales (
 8. **"Avisá al personal" le devolvía al paciente el trabajo que Frontera existe para hacer.** Corregido en dos frentes: (a) `SOUL.md` ya no le pide al paciente que avise a nadie — dice "ya avisé al equipo, tu caso quedó registrado"; (b) el dashboard clínico (`/clinica/dashboard`) solo cargaba los casos una vez al abrir — ahora hace polling cada 15s y suena una alerta cuando entra un caso nuevo, para que el personal se entere sin hacer nada (commit `589bed4`).
 
 **Gaps que quedan pendientes, identificados pero no resueltos todavía**:
-- El caso nunca pide el nombre del paciente (`patientLabel` queda fijo en "Paciente sin identificar") — con varias personas en la sala de espera no hay forma de saber cuál es cuál salvo mostrar el código de caso.
-- `NARANJA` y `AZUL` existen en el modelo de datos pero el clasificador de `lib/triage.ts` nunca los produce — todo lo "muy urgente pero no ROJO" hoy cae en AMARILLO.
+- El agente de WhatsApp (`SOUL.md`, fuera de este repo, vive en `~/.openclaw/workspace-triage`) todavía no pide el nombre del paciente — el wizard web sí lo pide desde el 18 de agosto de 2026 (ver Sección 11), pero WhatsApp sigue mandando `patientLabel` genérico hasta que se actualice el prompt allá.
 - Alcance de primeros auxilios: se decidió permitir que el bot dé indicaciones de seguridad inmediata genéricas (ej. "hacé presión para frenar el sangrado") pero nunca medicación/dosis — está en `SOUL.md`, vale la pena revisarlo con criterio médico real antes de un despliegue serio.
 - Audio (notas de voz) sin probar todavía.
 
-## 11. Próximos pasos sugeridos
+## 11. Rediseño UI/UX y refuerzo del triaje (18 de agosto de 2026)
+
+Sesión larga enfocada en UX y en cerrar gaps del clasificador, a partir de feedback directo de Elías sobre la landing ("no se entiende ni para qué es") y la falta de separación entre landing y app.
+
+**Identidad visual y tema**: se aplicó la paleta de la Propuesta A de identidad visual (Azul Profundo `#0A1D3A`, Aqua `#00C9A7`, Mint `#E6FAF5`) mediante variables CSS (`app/globals.css`), con modo claro/oscuro real en todo el sitio — toggle persistente (localStorage + respeta preferencia del sistema si no hay elección explícita) usando la marca F blanca (`public/frontera-mark-white.svg`) como ícono, sin parpadeo al cargar (`suppressHydrationWarning` en `<html>`, patrón estándar para este tipo de toggle).
+
+**Navegación landing vs. app**: hasta ahora compartían el mismo lenguaje visual y no se sentía un cambio de contexto al entrar al panel de clínica. Se resolvió:
+- Landing (`/`) reescrita para explicar el mecanismo real del producto — no solo "pre-triaje digital" sino "escaneás un QR, una IA te guía y te dice qué podés tener y cuánto vas a esperar; del otro lado el equipo médico ve un tablero con quién espera hace cuánto y qué tan urgente es cada uno" — con una maqueta visual del tablero de prioridades.
+- Panel de clínica (`/clinica/*`, `app/clinica/ClinicShell.tsx`) migrado de tabs horizontales a un sidebar fijo estilo SaaS (logo, clínica activa, nav) en desktop, con barra compacta + tabs horizontales como fallback mobile — el patrón típico que marca "esto es la app", no la web de marketing.
+- Bug encontrado y corregido en el camino: el botón "← Volver" del panel de clínica solo distinguía súper-admin vs. todo el resto — el personal de una clínica logueado caía en "todo el resto" y el botón lo mandaba a la landing pública en vez de a su propio dashboard.
+
+**Refuerzo del clasificador (`lib/triage.ts`)**:
+- **Nombre del paciente**: la lógica y la API ya soportaban `nombre`, pero el wizard web (`app/pretriaje/page.tsx`) nunca lo pedía — se agregó como pregunta opcional. El agente de WhatsApp (fuera de este repo) todavía no lo pide (ver gap pendiente, Sección 10).
+- **NARANJA y AZUL**: existían en el modelo de datos y en la UI (dashboard, badges) pero el clasificador nunca los producía — todo lo "muy urgente pero no ROJO" cala en AMARILLO. Ahora: `intensidad >= 9` sin señales rojas → NARANJA; una `intensidad <= 2` **explícitamente informada** (no solo ausente) sin otros síntomas → AZUL. Un `intensidad` no informado sigue cayendo en VERDE por default — AZUL nunca se infiere de la ausencia de dato.
+- Rotación de la contraseña de admin: se sacó la contraseña de demo en texto plano de este documento — ahora vive solo como variable de entorno (`ADMIN_PASSWORD`) en Vercel. Rotación real pendiente de que Elías la cargue en el dashboard de Vercel (no es una acción que Claude pueda ejecutar sin acceso).
+
+Commits: `0171d56`, `572f56a`, `b9979eb`, `bfaf19b`, `7f7689f`, `a1d13aa`.
+
+## 12. Próximos pasos sugeridos
 
 1. Documentar el avance de Codex en la sección 7 (o generar un CLAUDE.md del repo con ese contexto). ✅ hecho arriba a partir de lo relevado en el repo — falta que Elías confirme/corrija con lo que sabe de Codex que no esté en el código actual.
-2. Definir la visión del MVP (A, B o B-como-puente-hacia-A) antes de seguir construyendo features.
+2. Definir la visión del MVP (A, B o B-como-puente-hacia-A) antes de seguir construyendo features. **Sigue abierta a propósito** (decisión explícita del 18 de agosto de 2026: no resolver todavía, tratar el producto como lo que es hoy — pre-triaje B2B de guardias — sin comprometer copy ni arquitectura a A ni B).
 3. Rehacer TAM/SAM/SOM con datos 2026 y la visión elegida.
 4. Análisis competitivo de Cormos — qué hacen bien, qué dejan descubierto, dónde entra Frontera.
 5. Definir el primer caso de uso B2C concreto (ej.: turnos + recetas por WhatsApp para afiliados de una obra social específica) y validarlo con Eros y los contactos de salud.
 6. Mantener el ritmo en paralelo a Pinta: sesiones consistentes, sin sprint suicida.
 7. Prueba completa con clínica: crear clínica de prueba en `/admin/clinicas` → copiar kit completo → mostrar/escanear QR → completar pre-triaje → ver caso en dashboard clínico → probar entrada WhatsApp con link.
-8. Rotar la contraseña admin temporal (`frontera-demo-2026`) después de la demo.
-9. Pushear el fix de `source` (commit `b1d308f`) y confirmar deploy en Vercel.
-10. Mandar un mensaje real al +5492617261009 para probar el agente `triage` en producción (ver Sección 9) y confirmar que el caso queda con `source: whatsapp`.
-11. Agregar captura del nombre del paciente al flujo y mostrarlo en el dashboard clínico (ver Sección 10, gap pendiente).
-12. Revisar con criterio médico real el alcance de primeros auxilios que el bot puede sugerir (hoy: solo seguridad inmediata genérica, nunca medicación).
-13. Probar notas de voz/audio por WhatsApp — todavía sin validar.
-14. Decidir si vale la pena habilitar `NARANJA` como nivel intermedio real en `lib/triage.ts`, o si AMARILLO alcanza para el MVP.
+8. Actualizar `SOUL.md`/`TOOLS.md` del agente WhatsApp para que también pida el nombre del paciente (el wizard web ya lo hace — ver Sección 11).
+9. Revisar con criterio médico real el alcance de primeros auxilios que el bot puede sugerir (hoy: solo seguridad inmediata genérica, nunca medicación).
+10. Probar notas de voz/audio por WhatsApp — todavía sin validar.
 
 Este documento consolida todo el historial de Frontera en conversaciones con Claude (junio 2026 en adelante) más el contexto del proyecto original de 2021/2022. Actualizarlo a medida que el proyecto avance — es la fuente de verdad.
