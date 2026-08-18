@@ -82,23 +82,23 @@ function ClinicQrContent() {
   }
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
+    <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-6">
       {visibleError ? (
         <div>
           <h1 className="text-3xl font-black">No pudimos generar el QR</h1>
-          <p className="mt-3 text-slate-300">{visibleError}</p>
+          <p className="mt-3 text-[var(--text-secondary)]">{visibleError}</p>
         </div>
       ) : (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             QR de pre-triaje de guardia
           </h1>
-          <p className="mt-4 text-slate-300">
+          <p className="mt-4 text-[var(--text-secondary)]">
             Escaneá este QR al llegar a urgencias para iniciar tu pre-triaje
             por WhatsApp, hablando con Frontera.
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-5 rounded-[1.5rem] bg-white p-6 text-[#071826]">
+          <div className="mt-8 flex flex-col items-center gap-5 rounded-[1.5rem] bg-white p-6 text-[var(--accent-contrast)]">
             {whatsappUrl && (
               <QRCodeSVG
                 value={whatsappUrl}
@@ -117,27 +117,27 @@ function ClinicQrContent() {
             <button
               type="button"
               onClick={copyLink}
-              className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              className="rounded-2xl border border-[var(--border)] px-5 py-3 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
             >
               Copiar link de WhatsApp
             </button>
             <button
               type="button"
               onClick={() => window.print()}
-              className="rounded-2xl bg-[#00C9A7] px-5 py-3 text-sm font-bold text-[#071826]"
+              className="rounded-2xl bg-[#00C9A7] px-5 py-3 text-sm font-bold text-[var(--accent-contrast)]"
             >
               Imprimir QR
             </button>
           </div>
 
           {copyMessage && (
-            <p className="mt-3 text-sm text-slate-300 print:hidden">
+            <p className="mt-3 text-sm text-[var(--text-secondary)] print:hidden">
               {copyMessage}
             </p>
           )}
 
-          <details className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300 print:hidden">
-            <summary className="cursor-pointer font-semibold text-white">
+          <details className="mt-6 rounded-2xl border border-[var(--border)] bg-black/20 p-4 text-sm text-[var(--text-secondary)] print:hidden">
+            <summary className="cursor-pointer font-semibold text-[var(--text)]">
               Alternativa: pre-triaje por web (sin WhatsApp)
             </summary>
             <p className="mt-3 break-all">{targetUrl}</p>

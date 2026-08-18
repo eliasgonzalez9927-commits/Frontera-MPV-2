@@ -140,7 +140,7 @@ function ClinicTeamContent() {
   return (
     <>
       <h1 className="text-3xl font-semibold tracking-tight">Equipo de la clínica</h1>
-      <p className="mt-1 text-sm text-slate-400">
+      <p className="mt-1 text-sm text-[var(--text-tertiary)]">
         Solo un admin de esta clínica puede agregar o gestionar cuentas.
       </p>
 
@@ -160,7 +160,7 @@ function ClinicTeamContent() {
         <>
           <form
             onSubmit={addUser}
-            className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            className="mt-6 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-5"
           >
             <h2 className="text-xl font-black">Agregar cuenta</h2>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -168,19 +168,19 @@ function ClinicTeamContent() {
                 value={newUsername}
                 onChange={(event) => setNewUsername(event.target.value)}
                 placeholder="usuario"
-                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
+                className="min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none"
               />
               <select
                 value={newRole}
                 onChange={(event) =>
                   setNewRole(event.target.value as "admin" | "staff")
                 }
-                className="rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none"
               >
                 <option value="staff">Personal</option>
                 <option value="admin">Admin de la clínica</option>
               </select>
-              <button className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826]">
+              <button className="rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[var(--accent-contrast)]">
                 Crear
               </button>
             </div>
@@ -188,38 +188,38 @@ function ClinicTeamContent() {
 
           {freshCredentials && (
             <div className="mt-4 rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4">
-              <p className="text-sm font-semibold text-[#00C9A7]">
+              <p className="text-sm font-semibold text-[var(--accent-text)]">
                 Cuenta lista — guardá esto ahora, la contraseña no se vuelve a
                 mostrar
               </p>
-              <p className="mt-2 text-sm text-slate-300">Usuario</p>
-              <p className="font-mono text-sm text-white">
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">Usuario</p>
+              <p className="font-mono text-sm text-[var(--text)]">
                 {freshCredentials.username}
               </p>
-              <p className="mt-2 text-sm text-slate-300">Contraseña</p>
-              <p className="font-mono text-sm text-white">
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">Contraseña</p>
+              <p className="font-mono text-sm text-[var(--text)]">
                 {freshCredentials.password}
               </p>
             </div>
           )}
 
           {message && (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-overlay-05)] p-4 text-sm text-[var(--text-secondary)]">
               {message}
             </div>
           )}
 
           <div className="mt-8 space-y-3">
-            {isLoading && <p className="text-sm text-slate-300">Cargando...</p>}
+            {isLoading && <p className="text-sm text-[var(--text-secondary)]">Cargando...</p>}
 
             {users.map((user) => (
               <div
                 key={user.id}
-                className="flex flex-col justify-between gap-3 rounded-2xl border border-white/10 bg-[#102638] p-4 sm:flex-row sm:items-center"
+                className="flex flex-col justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:flex-row sm:items-center"
               >
                 <div>
                   <p className="font-bold">{user.username}</p>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--text-tertiary)]">
                     {user.role === "admin" ? "Admin de la clínica" : "Personal"} ·{" "}
                     {user.isActive ? "Activa" : "Inactiva"}
                   </p>
@@ -230,14 +230,14 @@ function ClinicTeamContent() {
                     onClick={() =>
                       updateUser(user, { isActive: !user.isActive })
                     }
-                    className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+                    className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
                   >
                     {user.isActive ? "Desactivar" : "Activar"}
                   </button>
                   <button
                     type="button"
                     onClick={() => updateUser(user, { regeneratePassword: true })}
-                    className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+                    className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
                   >
                     Nueva contraseña
                   </button>

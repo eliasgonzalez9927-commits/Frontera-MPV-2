@@ -2,6 +2,18 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { ThemeToggle } from "./ThemeToggle";
+
+const themeInitScript = `
+(function () {
+  try {
+    var stored = window.localStorage.getItem("frontera-theme");
+    if (stored === "light" || stored === "dark") {
+      document.documentElement.dataset.theme = stored;
+    }
+  } catch (e) {}
+})();
+`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,7 +34,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body>
+        <ThemeToggle />
+        {children}
+      </body>
     </html>
   );
 }

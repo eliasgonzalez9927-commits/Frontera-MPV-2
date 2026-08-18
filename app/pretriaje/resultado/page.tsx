@@ -29,15 +29,15 @@ export default function TriageResultFallbackPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#071826] px-6 text-white">
-      <div className="max-w-xl rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center">
+    <main className="grid min-h-screen place-items-center bg-[var(--surface)] px-6 text-[var(--text)]">
+      <div className="max-w-xl rounded-[2rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-8 text-center">
         <h1 className="text-3xl font-black">No hay un caso cargado</h1>
-        <p className="mt-3 text-slate-300">
+        <p className="mt-3 text-[var(--text-secondary)]">
           Iniciá un pre-triaje para generar una prioridad y resumen médico.
         </p>
         <Link
           href="/pretriaje"
-          className="mt-6 inline-flex rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[#071826]"
+          className="mt-6 inline-flex rounded-2xl bg-[#00C9A7] px-5 py-3 font-bold text-[var(--accent-contrast)]"
         >
           Iniciar pre-triaje
         </Link>

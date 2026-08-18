@@ -176,7 +176,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
       )}
 
       {message && (
-        <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
+        <div className="mt-6 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)]">
           {message}{" "}
           <Link href={dashboardHref} className="font-bold underline">
             Volver al dashboard
@@ -184,21 +184,21 @@ function ClinicCaseDetailContent({ params }: PageProps) {
         </div>
       )}
 
-      {isLoading && <p className="mt-8 text-slate-300">Cargando caso...</p>}
+      {isLoading && <p className="mt-8 text-[var(--text-secondary)]">Cargando caso...</p>}
 
       {caseData && (
-        <div className="mt-6 rounded-[2rem] border border-white/10 bg-white/5 p-6">
+        <div className="mt-6 rounded-[2rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-6">
           <div className="flex flex-col justify-between gap-4 md:flex-row">
             <div>
-              <p className="text-sm text-slate-400">Paciente</p>
+              <p className="text-sm text-[var(--text-tertiary)]">Paciente</p>
               <p className="mt-1 text-2xl font-black">
                 {caseData.patientLabel}
               </p>
-              <p className="mt-2 text-sm text-slate-400">
-                Código de caso: <span className="font-semibold text-white">{caseData.caseCode}</span>
+              <p className="mt-2 text-sm text-[var(--text-tertiary)]">
+                Código de caso: <span className="font-semibold text-[var(--text)]">{caseData.caseCode}</span>
               </p>
               {caseData.clinicName && (
-                <p className="mt-2 text-sm font-semibold text-[#00C9A7]">
+                <p className="mt-2 text-sm font-semibold text-[var(--accent-text)]">
                   {caseData.clinicName}
                 </p>
               )}
@@ -209,7 +209,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                   type="button"
                   disabled={isUpdating}
                   onClick={() => updateStatus("in_review")}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Marcar en revisión
                 </button>
@@ -220,14 +220,14 @@ function ClinicCaseDetailContent({ params }: PageProps) {
                   type="button"
                   disabled={isUpdating}
                   onClick={() => updateStatus("attended")}
-                  className="rounded-2xl bg-[#00C9A7] px-4 py-2 text-sm font-bold text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="rounded-2xl bg-[#00C9A7] px-4 py-2 text-sm font-bold text-[var(--accent-contrast)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Marcar atendido
                 </button>
               )}
 
               {caseData.status === "attended" && (
-                <div className="rounded-2xl border border-green-300/30 bg-green-500/10 px-4 py-2 text-sm font-bold text-green-100">
+                <div className="rounded-2xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-2 text-sm font-bold text-[var(--status-success-text)]">
                   Caso cerrado / Atendido
                 </div>
               )}
@@ -235,26 +235,26 @@ function ClinicCaseDetailContent({ params }: PageProps) {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Prioridad</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Prioridad</p>
               <p className="mt-1 font-semibold">
                 {caseData.priority} · {caseData.title}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Estado</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Estado</p>
               <p className="mt-1 font-semibold">
                 {statusLabels[caseData.status]}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Origen</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Origen</p>
               <p className="mt-1 font-semibold">
                 {getCaseOriginLabel(caseData)}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Fecha y hora</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Fecha y hora</p>
               <p className="mt-1 font-semibold">
                 {formatCaseDate(caseData.createdAt)}
               </p>
@@ -262,49 +262,49 @@ function ClinicCaseDetailContent({ params }: PageProps) {
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Motivo</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Motivo</p>
               <p className="mt-1 font-semibold">
                 {caseData.chiefComplaint}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Obra social / prepaga</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Obra social / prepaga</p>
               <p className="mt-1 font-semibold">
                 {conversationHandover?.obraSocial || "No informado"}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Evolución</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Evolución</p>
               <p className="mt-1 font-semibold">
                 {caseData.evolution || "No informado"}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Síntomas</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Síntomas</p>
               <p className="mt-1 font-semibold">
                 {caseData.symptoms.length > 0
                   ? caseData.symptoms.join(", ")
                   : "No informados"}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Señales detectadas</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Señales detectadas</p>
               <p className="mt-1 font-semibold">
                 {caseData.redSignals.length > 0
                   ? caseData.redSignals.join(", ")
                   : "Sin señales rojas detectadas"}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#102638] p-4">
-              <p className="text-sm text-slate-400">Recomendación</p>
+            <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+              <p className="text-sm text-[var(--text-tertiary)]">Recomendación</p>
               <p className="mt-1 font-semibold">
                 {caseData.recommendation}
               </p>
             </div>
             {conversationHandover?.patientContext && (
-              <div className="rounded-2xl bg-[#102638] p-4">
-                <p className="text-sm text-slate-400">Completado para</p>
+              <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+                <p className="text-sm text-[var(--text-tertiary)]">Completado para</p>
                 <p className="mt-1 font-semibold">
                   {conversationHandover.patientContext === "self"
                     ? "Para mí"
@@ -314,7 +314,7 @@ function ClinicCaseDetailContent({ params }: PageProps) {
             )}
             {conversationHandover?.orientationIntent && (
               <div className="rounded-2xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-4">
-                <p className="text-sm text-[#00C9A7]">
+                <p className="text-sm text-[var(--accent-text)]">
                   Orientación general
                 </p>
                 <p className="mt-1 font-semibold">
@@ -324,8 +324,8 @@ function ClinicCaseDetailContent({ params }: PageProps) {
               </div>
             )}
             {conversationHandover?.estimatedPriorityReason && (
-              <div className="rounded-2xl bg-[#102638] p-4">
-                <p className="text-sm text-slate-400">
+              <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+                <p className="text-sm text-[var(--text-tertiary)]">
                   Motivo de prioridad estimada
                 </p>
                 <p className="mt-1 font-semibold">
@@ -335,17 +335,17 @@ function ClinicCaseDetailContent({ params }: PageProps) {
             )}
             {conversationHandover?.redFlagAnswers &&
               conversationHandover.redFlagAnswers.length > 0 && (
-                <div className="rounded-2xl bg-[#102638] p-4">
-                  <p className="text-sm text-slate-400">
+                <div className="rounded-2xl bg-[var(--surface-raised)] p-4">
+                  <p className="text-sm text-[var(--text-tertiary)]">
                     Respuestas de señales rojas
                   </p>
                   <div className="mt-3 space-y-2">
                     {conversationHandover.redFlagAnswers.map((answer) => (
                       <p key={answer.id} className="text-sm">
-                        <span className="text-slate-300">
+                        <span className="text-[var(--text-secondary)]">
                           {answer.question}
                         </span>{" "}
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-[var(--text)]">
                           {answer.answer === "yes"
                             ? "Sí"
                             : answer.answer === "no"

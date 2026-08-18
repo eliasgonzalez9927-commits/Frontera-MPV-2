@@ -71,39 +71,39 @@ const priorityAccent: Record<
   { border: string; badgeBg: string; badgeText: string; avatarBg: string; avatarText: string }
 > = {
   ROJO: {
-    border: "border-l-red-500",
-    badgeBg: "bg-red-500/15",
-    badgeText: "text-red-200",
-    avatarBg: "bg-red-500/15",
-    avatarText: "text-red-100",
+    border: "border-l-[var(--status-danger-border)]",
+    badgeBg: "bg-[var(--status-danger-bg)]",
+    badgeText: "text-[var(--status-danger-text)]",
+    avatarBg: "bg-[var(--status-danger-bg)]",
+    avatarText: "text-[var(--status-danger-text)]",
   },
   NARANJA: {
-    border: "border-l-orange-500",
-    badgeBg: "bg-orange-500/15",
-    badgeText: "text-orange-200",
-    avatarBg: "bg-orange-500/15",
-    avatarText: "text-orange-100",
+    border: "border-l-[var(--status-caution-border)]",
+    badgeBg: "bg-[var(--status-caution-bg)]",
+    badgeText: "text-[var(--status-caution-text)]",
+    avatarBg: "bg-[var(--status-caution-bg)]",
+    avatarText: "text-[var(--status-caution-text)]",
   },
   AMARILLO: {
-    border: "border-l-yellow-400",
-    badgeBg: "bg-yellow-400/15",
-    badgeText: "text-yellow-200",
-    avatarBg: "bg-yellow-400/15",
-    avatarText: "text-yellow-100",
+    border: "border-l-[var(--status-warning-border)]",
+    badgeBg: "bg-[var(--status-warning-bg)]",
+    badgeText: "text-[var(--status-warning-text)]",
+    avatarBg: "bg-[var(--status-warning-bg)]",
+    avatarText: "text-[var(--status-warning-text)]",
   },
   VERDE: {
     border: "border-l-[#00C9A7]",
     badgeBg: "bg-[#00C9A7]/15",
-    badgeText: "text-[#00C9A7]",
+    badgeText: "text-[var(--accent-text)]",
     avatarBg: "bg-[#00C9A7]/15",
-    avatarText: "text-[#00C9A7]",
+    avatarText: "text-[var(--accent-text)]",
   },
   AZUL: {
-    border: "border-l-sky-500",
-    badgeBg: "bg-sky-500/15",
-    badgeText: "text-sky-200",
-    avatarBg: "bg-sky-500/15",
-    avatarText: "text-sky-100",
+    border: "border-l-[var(--status-info-border)]",
+    badgeBg: "bg-[var(--status-info-bg)]",
+    badgeText: "text-[var(--status-info-text)]",
+    avatarBg: "bg-[var(--status-info-bg)]",
+    avatarText: "text-[var(--status-info-text)]",
   },
 };
 
@@ -316,20 +316,20 @@ function ClinicDashboardContent() {
   return (
     <>
       <h1 className="text-3xl font-semibold tracking-tight">Casos en espera</h1>
-      <p className="mt-1 text-sm text-slate-400">
+      <p className="mt-1 text-sm text-[var(--text-tertiary)]">
         {clinicSlug ? "" : "Elegí una clínica para ver sus casos."}
       </p>
 
       {isSuperAdminSession && !clinicSlug && (
-        <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+        <div className="mt-6 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-5">
           <h2 className="text-xl font-black">Elegí una clínica</h2>
-          <p className="mt-2 text-sm text-slate-300">
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
             Estás con tu sesión de super admin — elegí a cuál clínica querés
             entrar.
           </p>
 
           {isPickerLoading && (
-            <p className="mt-4 text-sm text-slate-300">Cargando clínicas...</p>
+            <p className="mt-4 text-sm text-[var(--text-secondary)]">Cargando clínicas...</p>
           )}
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -337,10 +337,10 @@ function ClinicDashboardContent() {
               <Link
                 key={clinic.slug}
                 href={`/clinica/dashboard?clinic=${encodeURIComponent(clinic.slug)}`}
-                className="rounded-2xl border border-white/10 bg-[#102638] p-4 transition hover:bg-white/10"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 transition hover:bg-[var(--surface-overlay-10)]"
               >
                 <p className="font-bold">{clinic.name}</p>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-[var(--text-tertiary)]">
                   {clinic.isActive ? "Activa" : "Inactiva"}
                 </p>
               </Link>
@@ -348,7 +348,7 @@ function ClinicDashboardContent() {
           </div>
 
           {!isPickerLoading && pickerClinics.length === 0 && (
-            <p className="mt-4 text-sm text-slate-300">
+            <p className="mt-4 text-sm text-[var(--text-secondary)]">
               No hay clínicas creadas todavía.{" "}
               <Link href="/admin/clinicas" className="font-bold underline">
                 Crear una
@@ -371,7 +371,7 @@ function ClinicDashboardContent() {
       )}
 
       {message && (
-        <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm text-yellow-100">
+        <div className="mt-6 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)]">
           {message}
           {usingDemo ? " Mostrando datos demo de desarrollo." : ""}
         </div>
@@ -380,20 +380,20 @@ function ClinicDashboardContent() {
       {token && clinicSlug && (
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border-l-4 border-l-red-500 bg-white/5 px-4 py-3">
-              <p className="text-xs text-slate-400">Rojo</p>
+            <div className="rounded-lg border-l-4 border-l-[var(--status-danger-border)] bg-[var(--surface-overlay-05)] px-4 py-3">
+              <p className="text-xs text-[var(--text-tertiary)]">Rojo</p>
               <p className="mt-1 text-2xl font-semibold">{priorityCounters.rojo}</p>
             </div>
-            <div className="rounded-lg border-l-4 border-l-yellow-400 bg-white/5 px-4 py-3">
-              <p className="text-xs text-slate-400">Amarillo</p>
+            <div className="rounded-lg border-l-4 border-l-[var(--status-warning-border)] bg-[var(--surface-overlay-05)] px-4 py-3">
+              <p className="text-xs text-[var(--text-tertiary)]">Amarillo</p>
               <p className="mt-1 text-2xl font-semibold">{priorityCounters.amarillo}</p>
             </div>
-            <div className="rounded-lg border-l-4 border-l-[#00C9A7] bg-white/5 px-4 py-3">
-              <p className="text-xs text-slate-400">Verde</p>
+            <div className="rounded-lg border-l-4 border-l-[#00C9A7] bg-[var(--surface-overlay-05)] px-4 py-3">
+              <p className="text-xs text-[var(--text-tertiary)]">Verde</p>
               <p className="mt-1 text-2xl font-semibold">{priorityCounters.verde}</p>
             </div>
-            <div className="rounded-lg border-l-4 border-l-white/20 bg-white/5 px-4 py-3">
-              <p className="text-xs text-slate-400">Atendidos</p>
+            <div className="rounded-lg border-l-4 border-l-[var(--border-strong)] bg-[var(--surface-overlay-05)] px-4 py-3">
+              <p className="text-xs text-[var(--text-tertiary)]">Atendidos</p>
               <p className="mt-1 text-2xl font-semibold">{priorityCounters.attended}</p>
             </div>
           </div>
@@ -407,8 +407,8 @@ function ClinicDashboardContent() {
                   onClick={() => setSelectedFilter(filter.value)}
                   className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                     selectedFilter === filter.value
-                      ? "border-[#00C9A7] bg-[#00C9A7] text-[#071826]"
-                      : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                      ? "border-[#00C9A7] bg-[#00C9A7] text-[var(--accent-contrast)]"
+                      : "border-[var(--border)] bg-[var(--surface-overlay-05)] text-[var(--text-secondary)] hover:bg-[var(--surface-overlay-10)]"
                   }`}
                 >
                   {filter.label}
@@ -419,14 +419,14 @@ function ClinicDashboardContent() {
               type="button"
               onClick={loadCases}
               disabled={isLoading}
-              className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               Actualizar casos
             </button>
           </div>
 
           {selectedFilter === "all" && priorityCounters.attended > 0 && (
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-[var(--text-tertiary)]">
               Los atendidos hace más de 24 h no se muestran acá — mirá la
               pestaña &quot;Atendidos&quot; para el historial completo.
             </p>
@@ -434,11 +434,11 @@ function ClinicDashboardContent() {
         </div>
       )}
 
-      {isLoading && <p className="mt-8 text-slate-300">Cargando casos...</p>}
+      {isLoading && <p className="mt-8 text-[var(--text-secondary)]">Cargando casos...</p>}
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-white/10">
+      <div className="mt-6 overflow-hidden rounded-lg border border-[var(--border)]">
         {visibleCases.length === 0 && !isLoading && token && clinicSlug && (
-          <p className="p-5 text-sm text-slate-400">No hay casos para mostrar.</p>
+          <p className="p-5 text-sm text-[var(--text-tertiary)]">No hay casos para mostrar.</p>
         )}
 
         {visibleCases.map((item) => {
@@ -450,7 +450,7 @@ function ClinicDashboardContent() {
               href={`/clinica/casos/${item.caseCode}${
                 clinicSlug ? `?clinic=${encodeURIComponent(clinicSlug)}` : ""
               }`}
-              className={`flex items-center gap-4 border-b border-l-4 border-white/5 bg-white/[0.02] px-4 py-3 transition last:border-b-0 hover:bg-white/[0.06] ${accent.border}`}
+              className={`flex items-center gap-4 border-b border-l-4 border-[var(--border-soft)] bg-[var(--surface-overlay-02)] px-4 py-3 transition last:border-b-0 hover:bg-[var(--surface-overlay-06)] ${accent.border}`}
             >
               <div
                 className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${accent.avatarBg} ${accent.avatarText}`}
@@ -467,16 +467,16 @@ function ClinicDashboardContent() {
                     {item.title}
                   </span>
                 </div>
-                <p className="mt-0.5 truncate text-sm text-slate-400">
+                <p className="mt-0.5 truncate text-sm text-[var(--text-tertiary)]">
                   {item.chiefComplaint}
                 </p>
               </div>
 
               <div className="flex-shrink-0 text-right">
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-semibold text-[var(--text-secondary)]">
                   {formatElapsed(item.createdAt)}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
                   {statusLabels[item.status]}
                 </p>
               </div>

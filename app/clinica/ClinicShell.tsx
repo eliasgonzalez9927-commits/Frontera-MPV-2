@@ -57,13 +57,13 @@ export function ClinicShell({ children }: { children: ReactNode }) {
   const currentPageLabel = getCurrentPageLabel(pathname);
 
   return (
-    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[var(--surface)] px-6 py-8 text-[var(--text)]">
       <section className="mx-auto max-w-6xl">
-        <header className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between print:hidden">
+        <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between print:hidden">
           <div>
             <Link
               href={isSuperAdminSession ? "/admin/clinicas" : "/"}
-              className="text-sm text-[#00C9A7]"
+              className="text-sm text-[var(--accent-text)]"
             >
               ← {isSuperAdminSession ? "Volver al panel de admin" : "Volver"}
             </Link>
@@ -71,9 +71,9 @@ export function ClinicShell({ children }: { children: ReactNode }) {
             {isSuperAdminSession && (
               <nav
                 aria-label="breadcrumb"
-                className="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400"
+                className="mt-2 flex flex-wrap items-center gap-1 text-xs text-[var(--text-tertiary)]"
               >
-                <Link href="/admin/clinicas" className="hover:text-slate-200 hover:underline">
+                <Link href="/admin/clinicas" className="hover:text-[var(--text-secondary)] hover:underline">
                   Admin
                 </Link>
                 {clinicSlug && (
@@ -81,7 +81,7 @@ export function ClinicShell({ children }: { children: ReactNode }) {
                     <span>/</span>
                     <Link
                       href={`/clinica/dashboard${query}`}
-                      className="hover:text-slate-200 hover:underline"
+                      className="hover:text-[var(--text-secondary)] hover:underline"
                     >
                       {clinicName || clinicSlug}
                     </Link>
@@ -90,7 +90,7 @@ export function ClinicShell({ children }: { children: ReactNode }) {
                 {currentPageLabel && (
                   <>
                     <span>/</span>
-                    <span className="text-slate-300">{currentPageLabel}</span>
+                    <span className="text-[var(--text-secondary)]">{currentPageLabel}</span>
                   </>
                 )}
               </nav>
@@ -111,8 +111,8 @@ export function ClinicShell({ children }: { children: ReactNode }) {
                     href={`${tab.href}${query}`}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                       isActive
-                        ? "border-[#00C9A7] bg-[#00C9A7] text-[#071826]"
-                        : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                        ? "border-[#00C9A7] bg-[#00C9A7] text-[var(--accent-contrast)]"
+                        : "border-[var(--border)] bg-[var(--surface-overlay-05)] text-[var(--text-secondary)] hover:bg-[var(--surface-overlay-10)]"
                     }`}
                   >
                     {tab.label}

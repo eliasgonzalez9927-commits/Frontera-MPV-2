@@ -267,21 +267,21 @@ export default function AdminClinicsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#071826] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[var(--surface)] px-6 py-8 text-[var(--text)]">
       <section className="mx-auto max-w-6xl">
-        <Link href="/" className="text-sm text-[#00C9A7]">
+        <Link href="/" className="text-sm text-[var(--accent-text)]">
           ← Volver
         </Link>
 
         <header className="mt-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold text-[#00C9A7]">
+            <p className="text-sm font-semibold text-[var(--accent-text)]">
               Administracion interna
             </p>
             <h1 className="mt-2 text-4xl font-black tracking-tight">
               Clinicas
             </h1>
-            <p className="mt-2 max-w-2xl text-slate-300">
+            <p className="mt-2 max-w-2xl text-[var(--text-secondary)]">
               Cada clínica u hospital tiene su propio usuario y contraseña
               para entrar a su dashboard — no un token para pegar a mano.
             </p>
@@ -291,7 +291,7 @@ export default function AdminClinicsPage() {
             <button
               type="button"
               onClick={clearAdminSession}
-              className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
             >
               Cerrar sesion
             </button>
@@ -301,20 +301,20 @@ export default function AdminClinicsPage() {
         {!adminSession && (
           <form
             onSubmit={login}
-            className="mt-8 max-w-xl rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+            className="mt-8 max-w-xl rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-5"
           >
             <h2 className="text-xl font-black">Acceso admin</h2>
-            <label className="mt-5 block text-sm font-semibold text-slate-200">
+            <label className="mt-5 block text-sm font-semibold text-[var(--text-secondary)]">
               Usuario
             </label>
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none"
             />
 
-            <label className="mt-4 block text-sm font-semibold text-slate-200">
+            <label className="mt-4 block text-sm font-semibold text-[var(--text-secondary)]">
               Contrasena
             </label>
             <input
@@ -322,9 +322,9 @@ export default function AdminClinicsPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
+              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none"
             />
-            <button className="mt-4 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826]">
+            <button className="mt-4 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[var(--accent-contrast)]">
               Entrar
             </button>
           </form>
@@ -334,21 +334,21 @@ export default function AdminClinicsPage() {
           <div className="mt-8 grid gap-6 lg:grid-cols-[380px_1fr]">
             <form
               onSubmit={createClinic}
-              className="h-fit rounded-[1.5rem] border border-white/10 bg-white/5 p-5"
+              className="h-fit rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-5"
             >
               <h2 className="text-xl font-black">Crear clinica nueva</h2>
-              <label className="mt-5 block text-sm font-semibold text-slate-200">
+              <label className="mt-5 block text-sm font-semibold text-[var(--text-secondary)]">
                 Nombre de la clinica
               </label>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#102638] p-4 text-white outline-none"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-[var(--text)] outline-none"
                 placeholder="Ej: Clinica San Martin"
               />
-              <p className="mt-3 break-all text-sm text-slate-400">
+              <p className="mt-3 break-all text-sm text-[var(--text-tertiary)]">
                 Slug automatico:{" "}
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-[var(--text-secondary)]">
                   {previewSlug || "se genera con el nombre"}
                 </span>
               </p>
@@ -356,17 +356,17 @@ export default function AdminClinicsPage() {
               <button
                 type="submit"
                 disabled={isSaving || !previewSlug}
-                className="mt-5 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[#071826] disabled:cursor-not-allowed disabled:opacity-70"
+                className="mt-5 w-full rounded-2xl bg-[#00C9A7] px-5 py-3 font-black text-[var(--accent-contrast)] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSaving ? "Creando..." : "Crear clinica"}
               </button>
             </form>
 
-            <section className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+            <section className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-overlay-05)] p-5">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
                   <h2 className="text-xl font-black">Clinicas</h2>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--text-tertiary)]">
                     {clinics.length} clínica{clinics.length === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -374,14 +374,14 @@ export default function AdminClinicsPage() {
                   type="button"
                   onClick={loadClinics}
                   disabled={isLoading}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Actualizar
                 </button>
               </div>
 
               {isLoading && (
-                <p className="mt-5 text-sm text-slate-300">
+                <p className="mt-5 text-sm text-[var(--text-secondary)]">
                   Cargando clinicas...
                 </p>
               )}
@@ -415,7 +415,7 @@ export default function AdminClinicsPage() {
         )}
 
         {(message || copyMessage) && (
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+          <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-overlay-05)] p-4 text-sm text-[var(--text-secondary)]">
             {message || copyMessage}
           </div>
         )}
@@ -444,14 +444,14 @@ function ClinicCard({
   const links = buildClinicLinks(origin, clinic.slug);
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-[#102638] p-4">
+    <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-black">{clinic.name}</h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[var(--text-tertiary)]">
             Usuario: <span className="font-mono">{clinic.slug}</span>
           </p>
-          <p className="mt-2 text-sm font-semibold text-[#00C9A7]">
+          <p className="mt-2 text-sm font-semibold text-[var(--accent-text)]">
             {clinic.isActive ? "Activa" : "Inactiva"}
           </p>
         </div>
@@ -470,20 +470,20 @@ function ClinicCard({
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={links.qrPageUrl}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+          className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
         >
           Ver QR de guardia
         </Link>
         <Link
           href={links.dashboardUrl}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+          className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
         >
           Abrir dashboard
         </Link>
         <button
           type="button"
           onClick={onCopyKit}
-          className="rounded-xl bg-[#00C9A7] px-3 py-2 text-xs font-bold text-[#071826]"
+          className="rounded-xl bg-[#00C9A7] px-3 py-2 text-xs font-bold text-[var(--accent-contrast)]"
         >
           Copiar kit
         </button>
@@ -493,14 +493,14 @@ function ClinicCard({
         <button
           type="button"
           onClick={onToggleActive}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+          className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
         >
           {clinic.isActive ? "Desactivar" : "Activar"}
         </button>
         <button
           type="button"
           onClick={onRegeneratePassword}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+          className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
         >
           {clinic.hasLogin ? "Nueva contraseña" : "Generar acceso"}
         </button>
@@ -508,16 +508,16 @@ function ClinicCard({
 
       {freshCredentials && (
         <div className="mt-3 rounded-xl border border-[#00C9A7]/30 bg-[#00C9A7]/10 p-3">
-          <p className="text-xs font-semibold text-[#00C9A7]">
+          <p className="text-xs font-semibold text-[var(--accent-text)]">
             Acceso del dashboard — guardalo ahora, la contraseña no se vuelve
             a mostrar
           </p>
-          <p className="mt-2 text-xs text-slate-300">Usuario</p>
-          <p className="text-xs font-mono text-white">
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">Usuario</p>
+          <p className="text-xs font-mono text-[var(--text)]">
             {freshCredentials.username}
           </p>
-          <p className="mt-2 text-xs text-slate-300">Contraseña</p>
-          <p className="text-xs font-mono text-white">
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">Contraseña</p>
+          <p className="text-xs font-mono text-[var(--text)]">
             {freshCredentials.password}
           </p>
           <button
@@ -528,14 +528,14 @@ function ClinicCard({
                 "Acceso"
               )
             }
-            className="mt-2 rounded-lg border border-white/10 px-2 py-1 text-xs font-bold text-white transition hover:bg-white/10"
+            className="mt-2 rounded-lg border border-[var(--border)] px-2 py-1 text-xs font-bold text-[var(--text)] transition hover:bg-[var(--surface-overlay-10)]"
           >
             Copiar acceso
           </button>
         </div>
       )}
 
-      <details className="mt-3 text-xs text-slate-400">
+      <details className="mt-3 text-xs text-[var(--text-tertiary)]">
         <summary className="cursor-pointer font-semibold">
           Ver links completos
         </summary>
@@ -545,7 +545,7 @@ function ClinicCard({
             <button
               type="button"
               onClick={() => onCopyText(links.whatsappUrl, "Link de WhatsApp")}
-              className="font-bold text-white underline"
+              className="font-bold text-[var(--text)] underline"
             >
               copiar
             </button>
@@ -555,7 +555,7 @@ function ClinicCard({
             <button
               type="button"
               onClick={() => onCopyText(links.dashboardUrl, "Dashboard")}
-              className="font-bold text-white underline"
+              className="font-bold text-[var(--text)] underline"
             >
               copiar
             </button>
