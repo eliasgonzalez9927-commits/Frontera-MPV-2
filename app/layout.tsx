@@ -33,7 +33,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html
+      lang="es"
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
