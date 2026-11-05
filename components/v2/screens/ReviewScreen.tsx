@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { buildEpisodeCode, simulateSend } from "@/lib/v2/flow/episode";
 import { buildReview, getBirthDateNotice, type ReviewRow, type ReviewSection } from "@/lib/v2/flow/review";
 import { routes } from "@/lib/v2/flow/routes";
+import { useFlow } from "../flow/FlowProvider";
 import { useFlowScreen } from "../flow/useFlowScreen";
 import { ActionFooter } from "../ui/ActionFooter";
 import { Button } from "../ui/Button";
@@ -80,7 +81,9 @@ function Section({ section, onEdit }: { section: ReviewSection; onEdit: (route: 
 export function ReviewScreen() {
   const router = useRouter();
   const { state, dispatch, now, allowed, goBack } = useFlowScreen(routes.review);
+  const { simulation, setSimulation } = useFlow();
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const pending = useRef<{ cancel: () => void } | null>(null);
 
   // Si se llegó acá con el modo edición todavía activo (p. ej. con el botón Atrás del navegador),
@@ -109,9 +112,18 @@ export function ReviewScreen() {
     if (sending) return;
     setSending(true);
 
-    const simulation = simulateSend();
-    pending.current = simulation;
-    await simulation.promise;
+    const simulatedSend = simulateSend();
+    pending.current = simulatedSend;
+    await simulatedSend.promise;
+
+    // E03 simulado: la conexión falla. No se pierde nada y el reintento funciona.
+    if (simulation.sendFailures > 0) {
+      setSimulation((s) => ({ ...s, sendFailures: s.sendFailures - 1 }));
+      setSendError(true);
+      setSending(false);
+      return;
+    }
+    setSendError(false);
 
     // Solo se llega acá si la espera terminó (si se canceló, la promesa nunca se resuelve).
     dispatch({ type: "submit", episodeCode: buildEpisodeCode(Math.floor(Math.random() * 10000)) });
@@ -129,11 +141,20 @@ export function ReviewScreen() {
             iconLeft={sending ? undefined : <Send className="size-5" aria-hidden="true" />}
             onClick={handleSend}
           >
-            {sending ? "Enviando…" : "Enviar (simulación)"}
+            {sending ? "Enviando…" : sendError ? "Reintentar envío" : "Enviar (simulación)"}
           </Button>
         </ActionFooter>
       }
     >
+      {sendError && (
+        <div role="alert" className="mb-6">
+          <Notice variant="danger" title="No pudimos enviar tu consulta">
+            Parece que se cortó la conexión. Tus respuestas siguen acá, no se perdieron. Probá de
+            nuevo.
+          </Notice>
+        </div>
+      )}
+
       <h1 className="f2-question">Revisá tu consulta</h1>
       <p className="f2-body mt-2 text-f2-muted">
         Podés cambiar cualquier dato antes de enviar. Lo que escribiste en el motivo se muestra tal cual.

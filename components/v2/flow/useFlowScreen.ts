@@ -20,10 +20,16 @@ import { useFlow } from "./FlowProvider";
  */
 export function useFlowNavigation() {
   const router = useRouter();
-  const { state, dispatch, now } = useFlow();
+  const { state, dispatch, now, simulation, setSimulation } = useFlow();
 
   /** `nextState` permite decidir con un estado que todavía no se reflejó en el render. */
   function continueTo(defaultNext: string, nextState: FlowState = state) {
+    // E03 simulado: la conexión falla al avanzar. No se pierde nada; al reintentar, avanza.
+    if (simulation.advanceFailures > 0) {
+      setSimulation((s) => ({ ...s, advanceFailures: s.advanceFailures - 1, advanceError: true }));
+      return;
+    }
+    if (simulation.advanceError) setSimulation((s) => ({ ...s, advanceError: false }));
     const target = resolveContinue(nextState, defaultNext, now);
     if (nextState.editFromReview && target === routes.review) dispatch({ type: "finishEdit" });
     router.push(target);

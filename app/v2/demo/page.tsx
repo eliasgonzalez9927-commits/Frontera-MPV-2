@@ -23,7 +23,10 @@ export default function DemoIndex() {
             Design system (Hito 2)
           </Link>
         </li>
-        <li className="text-f2-muted">Selector de escenarios (llega en el Hito 6)</li>
+        <li className="text-f2-muted">
+          Escenarios y excepciones (E01–E04): en cualquier pantalla del recorrido, al final, el botón
+          “Herramientas de demostración”.
+        </li>
       </ul>
     </main>
   );

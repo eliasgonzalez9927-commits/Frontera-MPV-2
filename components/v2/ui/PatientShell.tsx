@@ -3,8 +3,11 @@
 import { ChevronLeft, CircleHelp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { SimulationControl } from "../demo/SimulationControl";
+import { useFlow } from "../flow/FlowProvider";
 import { HelpSheet } from "./HelpSheet";
 import { Logo } from "./Logo";
+import { Notice } from "./Notice";
 
 type PatientShellProps = {
   children: ReactNode;
@@ -30,6 +33,7 @@ export function PatientShell({
   institutionName = DEMO_INSTITUTION,
 }: PatientShellProps) {
   const [helpOpen, setHelpOpen] = useState(false);
+  const { simulation } = useFlow();
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -95,7 +99,15 @@ export function PatientShell({
         tabIndex={-1}
         className="mx-auto w-full max-w-[560px] flex-1 px-4 py-6 outline-none md:py-10"
       >
+        {simulation.advanceError && (
+          <div role="alert" className="mb-6">
+            <Notice variant="alert" title="No pudimos continuar">
+              Parece que se cortó la conexión. Tus respuestas siguen acá. Volvé a tocar “Continuar”.
+            </Notice>
+          </div>
+        )}
         {children}
+        <SimulationControl />
       </main>
 
       {footer}
