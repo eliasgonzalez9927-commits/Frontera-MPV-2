@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
@@ -15,6 +16,7 @@ function getSystemTheme(): Theme {
 }
 
 export function ThemeToggle() {
+  const pathname = usePathname();
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
@@ -31,6 +33,11 @@ export function ThemeToggle() {
     setTheme(next);
     window.localStorage.setItem("frontera-theme", next);
     document.documentElement.dataset.theme = next;
+  }
+
+  // Frontera 2.0 (/v2) es siempre claro y tiene su propio shell: no mostrar el toggle del producto anterior.
+  if (pathname?.startsWith("/v2")) {
+    return null;
   }
 
   return (

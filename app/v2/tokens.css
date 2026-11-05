@@ -1,0 +1,160 @@
+/* Frontera 2.0 — tokens del prototipo del paciente.
+   Acotados a .f2-root: no afectan al producto anterior.
+   Mantener sincronizado con lib/v2/design/tokens.ts (lo verifica un test). */
+
+.f2-root {
+  --f2-bg: #f6f8f7;
+  --f2-surface: #ffffff;
+  --f2-ink: #16312f;
+  --f2-muted: #5a6c69;
+  --f2-brand: #0c655d;
+  --f2-brand-hover: #0a5149;
+  --f2-brand-soft: #e7f1ef;
+  --f2-border: #dde5e3;
+  --f2-control: #7f908d;
+  --f2-danger: #b42318;
+  --f2-danger-soft: #fef3f2;
+  --f2-danger-border: #f4b5ae;
+  --f2-warn: #7a4b00;
+  --f2-warn-soft: #fff6e5;
+  --f2-warn-border: #f1d08a;
+
+  min-height: 100dvh;
+  background: var(--f2-bg);
+  color: var(--f2-ink);
+  color-scheme: light;
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-size-adjust: 100%;
+}
+
+/* El prototipo es siempre claro, aunque el resto del sitio tenga tema oscuro. */
+html:has(.f2-root) body {
+  background: #f6f8f7;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-f2-bg: var(--f2-bg);
+  --color-f2-surface: var(--f2-surface);
+  --color-f2-ink: var(--f2-ink);
+  --color-f2-muted: var(--f2-muted);
+  --color-f2-brand: var(--f2-brand);
+  --color-f2-brand-hover: var(--f2-brand-hover);
+  --color-f2-brand-soft: var(--f2-brand-soft);
+  --color-f2-border: var(--f2-border);
+  --color-f2-control: var(--f2-control);
+  --color-f2-danger: var(--f2-danger);
+  --color-f2-danger-soft: var(--f2-danger-soft);
+  --color-f2-danger-border: var(--f2-danger-border);
+  --color-f2-warn: var(--f2-warn);
+  --color-f2-warn-soft: var(--f2-warn-soft);
+  --color-f2-warn-border: var(--f2-warn-border);
+}
+
+/* Escala tipográfica (mínimo 14px en cualquier texto). */
+@utility f2-hero {
+  font-size: 2rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  @media (min-width: 48rem) {
+    font-size: 2.5rem;
+    line-height: 2.75rem;
+  }
+}
+
+@utility f2-title {
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+@utility f2-question {
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  @media (min-width: 48rem) {
+    font-size: 1.625rem;
+    line-height: 2rem;
+  }
+}
+
+@utility f2-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.625rem;
+  font-weight: 600;
+}
+
+@utility f2-body {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 400;
+}
+
+@utility f2-support {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  font-weight: 400;
+}
+
+@utility f2-option {
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+}
+
+@utility f2-button {
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+
+@utility f2-label {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+
+@utility f2-error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+/* Transición suave entre preguntas (se anula con prefers-reduced-motion). */
+@keyframes f2-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility f2-enter {
+  animation: f2-fade-in 220ms ease-out;
+}
+
+@utility f2-focus {
+  &:focus-visible {
+    outline: 3px solid var(--f2-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* Movimiento reducido: sin animaciones ni transiciones. */
+@media (prefers-reduced-motion: reduce) {
+  .f2-root *,
+  .f2-root *::before,
+  .f2-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
