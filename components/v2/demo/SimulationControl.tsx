@@ -27,16 +27,10 @@ export function SimulationControl() {
 
   const options: Option[] = [
     {
-      id: "emergency-inside",
-      label: "Emergencia simulada (en la institución)",
-      hint: "E01. Pantalla de seguridad para quien ya está en el lugar.",
-      run: () => go(exceptionRoutes.emergencyInside),
-    },
-    {
-      id: "emergency-outside",
-      label: "Emergencia simulada (fuera de la institución)",
-      hint: "E01. Pantalla de seguridad para quien está en otro lugar.",
-      run: () => go(exceptionRoutes.emergencyOutside),
+      id: "emergency",
+      label: "Emergencia simulada",
+      hint: "E01. Pantalla de seguridad: pide avisar al personal de la guardia.",
+      run: () => go(exceptionRoutes.emergency),
     },
     {
       id: "paused",

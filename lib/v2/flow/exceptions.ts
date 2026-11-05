@@ -2,10 +2,8 @@
 // nada de esto se deduce de lo que la persona escribe o responde.
 
 export const exceptionRoutes = {
-  /** E01 — emergencia simulada, la persona está en la institución. */
-  emergencyInside: "/v2/emergencia/dentro",
-  /** E01 — emergencia simulada, la persona está fuera de la institución. */
-  emergencyOutside: "/v2/emergencia/fuera",
+  /** E01 — emergencia simulada. La demostración siempre transcurre dentro de la guardia. */
+  emergency: "/v2/emergencia",
   /** E02 — sesión interrumpida. */
   paused: "/v2/pausa",
   /** E04 — institución no disponible. */

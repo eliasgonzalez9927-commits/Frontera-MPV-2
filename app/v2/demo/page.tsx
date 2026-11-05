@@ -23,6 +23,11 @@ export default function DemoIndex() {
             Design system (Hito 2)
           </Link>
         </li>
+        <li>
+          <Link className="f2-focus text-f2-brand underline underline-offset-4" href="/v2/chat">
+            Versión conversacional (chat)
+          </Link>
+        </li>
         <li className="text-f2-muted">
           Escenarios y excepciones (E01–E04): en cualquier pantalla del recorrido, al final, el botón
           “Herramientas de demostración”.

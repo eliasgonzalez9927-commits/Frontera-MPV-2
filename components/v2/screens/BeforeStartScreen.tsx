@@ -21,7 +21,7 @@ const items = [
   {
     Icon: Siren,
     title: "Si es una emergencia, pedí ayuda ya",
-    text: "Acercate al personal de la institución o contactá a los servicios de emergencias. No esperes a terminar este formulario.",
+    text: "Avisá al personal de la guardia ahora. No esperes a terminar este formulario.",
   },
   {
     Icon: Lock,

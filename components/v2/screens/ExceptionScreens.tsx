@@ -19,9 +19,8 @@ function useReturn() {
 }
 
 // E01 — Emergencia simulada. Solo se llega desde el control de pruebas.
-export function EmergencyScreen({ place }: { place: "inside" | "outside" }) {
+export function EmergencyScreen() {
   const back = useReturn();
-  const inside = place === "inside";
 
   return (
     <PatientShell
@@ -41,12 +40,8 @@ export function EmergencyScreen({ place }: { place: "inside" | "outside" }) {
       <StatusScreen
         tone="danger"
         icon={<OctagonAlert className="size-7" />}
-        title={inside ? "Pedí ayuda al personal ahora" : "Pedí ayuda de emergencia ahora"}
-        description={
-          inside
-            ? "Acercate al personal de la institución o pedí a alguien que lo llame. No hace falta seguir con el formulario."
-            : "Comunicate con el servicio de emergencias de tu zona o pedí a alguien cercano que lo haga. No hace falta seguir con el formulario."
-        }
+        title="Avisá al personal ahora"
+        description="Estás en la guardia: acercate al personal o pedí a alguien que lo llame. No hace falta seguir con el formulario."
       >
         <p className="f2-label text-f2-muted">Texto de demostración: lo define cada institución.</p>
       </StatusScreen>
@@ -120,10 +115,10 @@ export function UnavailableScreen() {
         tone="warn"
         icon={<Building2 className="size-7" />}
         title="La institución no está disponible ahora"
-        description="No pudimos comunicarnos con la institución. Tus respuestas no se perdieron. Probá de nuevo en unos minutos."
+        description="No pudimos comunicarnos con el sistema de la institución. Tus respuestas no se perdieron. Probá de nuevo en unos minutos."
       >
         <Notice variant="info">
-          Si necesitás atención ahora, acercate a la institución o pedí ayuda a alguien cercano.
+          Si necesitás atención ahora, avisá al personal de la guardia.
         </Notice>
       </StatusScreen>
     </PatientShell>

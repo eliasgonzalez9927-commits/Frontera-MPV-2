@@ -57,8 +57,7 @@ export function WelcomeScreen() {
 
       <div className="mt-6">
         <Notice variant="danger" title="¿Es una emergencia?">
-          Pedí ayuda ahora al personal de la institución o contactá a los servicios de emergencias. No
-          esperes a completar este formulario.
+          Avisá al personal de la guardia ahora. No esperes a completar este formulario.
         </Notice>
       </div>
 
@@ -104,6 +103,10 @@ export function WelcomeScreen() {
         Herramienta de demostración (no es parte del recorrido del paciente):{" "}
         <Link href="/v2/demo" className="f2-focus text-f2-brand underline underline-offset-4">
           ver herramientas
+        </Link>
+        {" · "}
+        <Link href="/v2/chat" className="f2-focus text-f2-brand underline underline-offset-4">
+          probar la versión conversacional
         </Link>
       </p>
 

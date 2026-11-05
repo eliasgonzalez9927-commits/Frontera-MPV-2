@@ -14,9 +14,9 @@ import { PatientShell } from "../ui/PatientShell";
 
 // Texto de demostración: el contenido real de llegada lo define cada institución.
 const arrivalSteps = [
-  { Icon: Building2, text: "Dirigite a la entrada de urgencias de la institución." },
-  { Icon: IdCard, text: "En admisión, mostrá este pase para que encuentren tu información." },
-  { Icon: DoorOpen, text: "Si tu situación cambia mientras esperás, avisá al personal." },
+  { Icon: Building2, text: "Ya estás en la guardia: acercate a admisión." },
+  { Icon: IdCard, text: "Mostrá este pase para que encuentren tu información." },
+  { Icon: DoorOpen, text: "Esperá en la sala. Si te sentís peor, avisá al personal enseguida." },
 ];
 
 // P08 — Pase digital (ficticio)
@@ -69,7 +69,7 @@ export function PassScreen() {
 
       <section aria-labelledby="arrival" className="mt-8">
         <h2 id="arrival" className="f2-subtitle">
-          Cuando llegues
+          Qué sigue
         </h2>
         <p className="f2-label mt-1 text-f2-muted">Texto de demostración</p>
         <ol className="mt-3 space-y-3">
